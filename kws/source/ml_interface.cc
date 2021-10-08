@@ -56,6 +56,7 @@
 #include "atomic.h"
 #include "semphr.h"
 #include "audio_drv.h"
+#include "queue.h"
 
 #define AUDIO_BLOCK_NUM         (4)
 #define AUDIO_BLOCK_SIZE        (3200)
@@ -65,6 +66,15 @@
 #define NS2S(T, P)                 ((T)(((uintptr_t)(P)) + 0x10000000))
 
 namespace {
+
+typedef enum {
+    ML_EVENT_START,
+    ML_EVENT_STOP
+} ml_event_t;
+
+typedef struct {
+    ml_event_t event;
+} ml_msg_t;
 
 // Import 
 using KwsClassifier = arm::app::Classifier;
@@ -77,6 +87,7 @@ int16_t shared_audio_buffer [AUDIO_BUFFER_SIZE/2];
 const int kAudioSampleFrequency = 16000;
 
 // Processing state
+static QueueHandle_t ml_msg_queue = NULL;
 SemaphoreHandle_t ml_mutex = NULL;
 ml_processing_state_t ml_processing_state;
 ml_processing_change_handler_t ml_processing_change_handler = NULL;
@@ -101,49 +112,80 @@ const char* get_inference_result_string(ml_processing_state_t ref_state)
 {
     return (label_to_state[ref_state].first);
 }
+
+void ml_task_inference_start()
+{
+    const ml_msg_t msg = { ML_EVENT_START };
+    xQueueSend(ml_msg_queue, &msg, (TickType_t) 0);
 }
 
-/* TODO: remove if switching to OTA */
+void ml_task_inference_stop()
+{
+    const ml_msg_t msg = { ML_EVENT_STOP };
+    xQueueSend(ml_msg_queue, &msg, (TickType_t) 0);
+}
+} // extern "C" {
+
 extern "C" void mqtt_send_inference_result(ml_processing_state_t state);
+
+static bool ml_lock()
+{
+    bool success = false;
+    if ( ml_mutex )
+    {
+        if (xSemaphoreTake( ml_mutex, portMAX_DELAY ) == pdTRUE )
+        {
+            success = true;
+        }
+        else
+        {
+            printf_err( ( "Failed to acquire ml_mutex" ) );
+        }
+    }
+    return success;
+}
+
+static bool ml_unlock()
+{
+    bool success = false;
+    if ( ml_mutex )
+    {
+        if (xSemaphoreGive( ml_mutex ) == pdTRUE )
+        {
+            success = true;
+        }
+        else
+        {
+            printf_err( ( "Failed to release ml_mutex" ) );
+        }
+    }
+    return success;
+}
 
 void set_ml_processing_state(ml_processing_state_t new_state)
 {
-    if (!ml_mutex) { 
-        printf_err("Cannot set processing state, mutex does not exist");
+    if (!ml_lock()) {
         return;
     }
 
-    if (xSemaphoreTake( ml_mutex, portMAX_DELAY ) != pdTRUE ) { 
-        printf_err("Failed to acquire processing state mutex");
-        return;
-    }
+    if (new_state != ml_processing_state) {
+        mqtt_send_inference_result(new_state);
 
-    if (new_state == ml_processing_state) { 
-        goto exit;
-    }
+        ml_processing_state = new_state;
+        if (ml_processing_change_handler) {
+            // Copy the handler data to release the mutex, this allow the external
+            // code to not be blocked if it calls the getter or change the handler.
+            ml_processing_change_handler_t handler = ml_processing_change_handler;
+            void* handler_instance = ml_processing_change_ptr;
 
-    /* TODO: remove if switching to OTA */
-    mqtt_send_inference_result(new_state);
+            ml_unlock();
 
-    ml_processing_state = new_state;
-    if (ml_processing_change_handler) { 
-        // Copy the handler data to release the mutex, this allow the external
-        // code to not be blocked if it calls the getter or change the handler.
-        ml_processing_change_handler_t handler = ml_processing_change_handler;
-        void* handler_instance = ml_processing_change_ptr;
-
-        if( xSemaphoreGive( ml_mutex ) != pdTRUE ) {
-            printf_err("Unexpected failure when releasing the processing state mutex");
+            handler(handler_instance, new_state);
+            return;
         }
-
-        handler(handler_instance, new_state);
-        return;
     }
 
-exit:
-    if( xSemaphoreGive( ml_mutex ) != pdTRUE ) {
-        printf_err("Unexpected failure when releasing the processing state mutex");
-    }
+    ml_unlock();
 }
 
 
@@ -425,52 +467,69 @@ void ProcessAudio(ApplicationContext& ctx)
     auto mfccAudioData = std::vector<int16_t>(mfccWindowSize, 0);
     size_t audio_index = 0;
 
-    // Start processing audio data as it arrive 
-    while (true) { 
-        /* The first window does not have cache ready. */
-        bool useCache = first_iteration == false && numberOfReusedFeatureVectors > 0;
-        size_t stride_index = 0;
+    // Start processing audio data as it arrive
+    ml_msg_t msg;
+    while (true) {
+        while (true) {
+            if (xQueueReceive(ml_msg_queue, &msg, 0) == pdPASS ) {
+                if (msg.event == ML_EVENT_STOP) {
+                    /* jump out to outer loop */
+                    break;
+                } /* else it's ML_EVENT_START so we fall through and continue with the code */
+            }
 
-        while (stride_index < (audioDataWindowSize / mfccWindowStride)) { 
-            if (!useCache || stride_index >= numberOfReusedFeatureVectors) { 
-                circularSlider.next(mfccAudioData.data());
-            }                
+            /* The first window does not have cache ready. */
+            bool useCache = first_iteration == false && numberOfReusedFeatureVectors > 0;
+            size_t stride_index = 0;
 
-            /* Compute features for this window and write them to input tensor. */
-            mfccFeatureCalc(mfccAudioData,
-                            stride_index,
-                            useCache,
-                            nMfccVectorsInAudioStride);
-            ++stride_index;
+            while (stride_index < (audioDataWindowSize / mfccWindowStride)) {
+                if (!useCache || stride_index >= numberOfReusedFeatureVectors) {
+                    circularSlider.next(mfccAudioData.data());
+                }
+
+                /* Compute features for this window and write them to input tensor. */
+                mfccFeatureCalc(mfccAudioData,
+                                stride_index,
+                                useCache,
+                                nMfccVectorsInAudioStride);
+                ++stride_index;
+            }
+
+            /* Run inference over this audio clip sliding window. */
+            if (!model.RunInference()) {
+                printf_err("Failed to run inference");
+                return;
+            }
+
+            std::vector<ClassificationResult> classificationResult;
+            auto& classifier = ctx.Get<KwsClassifier&>("classifier");
+            classifier.GetClassificationResults(outputTensor, classificationResult,
+                                                ctx.Get<std::vector<std::string>&>("labels"), 1);
+
+            auto result = kws::KwsResult(
+                classificationResult,
+                audio_index * secondsPerSample * audioDataStride,
+                audio_index,
+                scoreThreshold
+            );
+
+            if (result.m_resultVec.empty()) {
+                set_ml_processing_state(ML_UNKNOWN);
+            } else {
+                set_ml_processing_state(convert_inference_result(result.m_resultVec[0].m_label));
+            }
+
+            PresentInferenceResult(result);
+            first_iteration = false;
+            ++audio_index;
+        } /* while (true) */
+
+        if (xQueueReceive(ml_msg_queue, &msg, 0) == pdPASS ) {
+            if (msg.event == ML_EVENT_STOP) {
+                /* already stopped so restart */
+                continue;
+            } /* else it's ML_EVENT_START so we fall through to the next loop */
         }
-
-        /* Run inference over this audio clip sliding window. */
-        if (!model.RunInference()) {
-            printf_err("Failed to run inference");
-            return;
-        }
-
-        std::vector<ClassificationResult> classificationResult;
-        auto& classifier = ctx.Get<KwsClassifier&>("classifier");
-        classifier.GetClassificationResults(outputTensor, classificationResult,
-                                            ctx.Get<std::vector<std::string>&>("labels"), 1);
-
-        auto result = kws::KwsResult(
-            classificationResult,
-            audio_index * secondsPerSample * audioDataStride,
-            audio_index, 
-            scoreThreshold
-        );
-
-        if (result.m_resultVec.empty()) {
-            set_ml_processing_state(ML_UNKNOWN);
-        } else {
-            set_ml_processing_state(convert_inference_result(result.m_resultVec[0].m_label));
-        }
-
-        PresentInferenceResult(result);
-        first_iteration = false;
-        ++audio_index;
     } /* while (true) */
 }
 
@@ -777,21 +836,13 @@ extern "C" {
 
 ml_processing_state_t get_ml_processing_state()
 {
-    if (!ml_mutex) { 
-        printf_err("Cannot set processing state, mutex does not exist");
-        return ML_UNKNOWN;
-    }
-
-    if (xSemaphoreTake( ml_mutex, portMAX_DELAY ) != pdTRUE ) { 
-        printf_err("Failed to acquire processing state mutex");
+    if (!ml_lock()) {
         return ML_UNKNOWN;
     }
 
     ml_processing_state_t result = ml_processing_state;
 
-    if( xSemaphoreGive( ml_mutex ) != pdTRUE ) {
-        printf_err("Unexpected failure when releasing the processing state mutex");
-    }
+    ml_unlock();
 
     return result;
 }
@@ -839,6 +890,17 @@ int ml_interface_init()
 
 void ml_task(void*) { 
     ml_mutex = xSemaphoreCreateMutex();
+
+    ml_msg_queue = xQueueCreate(10, sizeof(ml_msg_t));
+
+    while (1) {
+        ml_msg_t msg;
+        if (xQueueReceive(ml_msg_queue, &msg, portMAX_DELAY) == pdPASS ) {
+            if (msg.event == ML_EVENT_START) {
+                break;
+            } /* else it's ML_EVENT_STOP so we keep waiting the loop */
+        }
+    }
 
     if (ml_interface_init() < 0) {
         printf_err("ml_interface_init failed\n");

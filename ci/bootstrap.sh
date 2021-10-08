@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 #  Copyright (c) 2021 Arm Limited. All rights reserved.
 #  SPDX-License-Identifier: Apache-2.0
@@ -15,6 +15,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-# requires 7z
-7z a -tzip ARM.DevSummitDemo.1.0.0.pack ../../devsummitdemo-2021 -x'!devsummitdemo-2021/ci' -x'!devsummitdemo-2021/scripts' -xr'!.*'
-7z a -tzip ARM.DevSummitDemo.1.0.0.pack ./ARM.DevSummitDemo.pdsc
+export ARMLMD_LICENSE_FILE=7010@cam-lic03.cambridge.arm.com:7010@cam-lic04.cambridge.arm.com:7010@cam-lic05.cambridge.arm.com:7010@cam-lic07.cambridge.arm.com
+
+source /opt/cbuild/etc/setup
+cp_init.sh
+git submodule update --init lib/VHT

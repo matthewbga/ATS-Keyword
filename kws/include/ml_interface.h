@@ -42,6 +42,9 @@ typedef enum ml_processing_state_t {
 /* return pointer to string version of ml_processing_state_t */
 const char* get_inference_result_string(ml_processing_state_t ref_state);
 
+void ml_task_inference_start();
+void ml_task_inference_stop();
+
 /* Initialises the interface to audio processing.
  */
 int ml_interface_init(void);

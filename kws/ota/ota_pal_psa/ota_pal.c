@@ -273,13 +273,7 @@ static OtaPalStatus_t otaPal_CheckSignature( OtaFileContext_t * const pFileConte
 OtaPalStatus_t otaPal_CloseFile( OtaFileContext_t * const pFileContext )
 {
     /* Check the signature. */
-    OtaPalStatus_t err = otaPal_CheckSignature( pFileContext );
-    /* TODO: remove code below and return err directly once the signature check succeeds */
-    if (err)
-    {
-        printf("\r\notaPal_CloseFile %d:%d\r\n", OTA_PAL_MAIN_ERR(err), OTA_PAL_SUB_ERR(err));
-    }
-    return OTA_PAL_COMBINE_ERR( OtaPalSuccess, 0 );
+    return otaPal_CheckSignature( pFileContext );
 }
 
 /**

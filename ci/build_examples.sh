@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 #  Copyright (c) 2021 Arm Limited. All rights reserved.
 #  SPDX-License-Identifier: Apache-2.0
@@ -15,6 +15,9 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-# requires 7z
-7z a -tzip ARM.DevSummitDemo.1.0.0.pack ../../devsummitdemo-2021 -x'!devsummitdemo-2021/ci' -x'!devsummitdemo-2021/scripts' -xr'!.*'
-7z a -tzip ARM.DevSummitDemo.1.0.0.pack ./ARM.DevSummitDemo.pdsc
+set -xe 
+
+HERE="$(dirname "$0")"
+
+$HERE/../build.sh blinky
+$HERE/../build.sh kws

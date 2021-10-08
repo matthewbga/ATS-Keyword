@@ -16,13 +16,13 @@
  -->
 <package schemaVersion="1.6.3" xmlns:xs="http://www.w3.org/2001/XMLSchema-instance" xs:noNamespaceSchemaLocation="PACK.xsd">
   <name>DevSummitDemo</name>
-  <description>Collection of projects used to demonestrate TFM, ML and OTA on Corstone 300</description>
+  <description>Project to demonstrate TFM, ML and OTA on Corstone 300</description>
   <vendor>ARM</vendor>
   <url>http://www.keil.com/pack/</url>
 
   <releases>
-    <release version="1.0.0" date="2021-07-30">
-      First release containing Blinky demo using TFM running on FVP.
+    <release version="1.0.0" date="2021-10-11">
+      initial Devsummit 2021 release.
     </release>
   </releases>
 
@@ -46,18 +46,18 @@
   </requirements>
 
   <examples>
-    <example name="tfm-blinky-secure" doc="README.md" folder="examples/tfm-blinky">
+    <example name="tfm-blinky-secure" doc="README.md" folder="devsummitdemo-2021">
       <description>Blinky example for SSE300 FVP.</description>
       <board name="V2M-MPS3-SSE-300-FVP" vendor="ARM"/>
         <project>
-          <environment name="uv" load="tfm.blinky.uvmpw"/>
+          <environment name="uv" load="blinky.uvmpw"/>
         </project>
     </example>
-    <example name="tfm-ml" doc="README.md" folder="examples/tfm-ml">
+    <example name="tfm-ml" doc="README.md" folder="devsummitdemo-2021">
       <description>ML example for SSE300 FVP.</description>
       <board name="V2M-MPS3-SSE-300-FVP" vendor="ARM"/>
         <project>
-          <environment name="uv" load="tfm.ml.uvmpw"/>
+          <environment name="uv" load="kws.uvmpw"/>
         </project>
     </example>
   </examples>

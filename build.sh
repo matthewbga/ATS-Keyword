@@ -22,8 +22,9 @@ HERE="$(dirname "$0")"
 EXAMPLE=""
 CLEAN=0
 
-function build_with_cbuild {
+set -e 
 
+function build_with_cbuild {
     CBUILD="$(which cbuild.sh)"
     if [[ ! -f "$CBUILD" ]]; then
         echo "${NAME}: cbuild.sh is not in PATH" >&2
@@ -32,16 +33,18 @@ function build_with_cbuild {
 
     CBUILD_ARGS="--jobs=$(grep processor /proc/cpuinfo | wc -l)"
 
+    mkdir -p build
+
     # Force clean build when example has changed.
     case "$EXAMPLE" in
         kws)
-            if [[ -e Objects/.blinky ]]; then
+            if [[ -e build/blinky ]]; then
                 echo "Example has changed, clean build forced" >&2
                 CLEAN=1
             fi
             ;;
         blinky)
-            if [[ -e Objects/.kws ]]; then
+            if [[ -e build/kws ]]; then
                 echo "Example has changed, clean build forced" >&2
                 CLEAN=1
             fi
@@ -52,21 +55,18 @@ function build_with_cbuild {
 
     if [[ $CLEAN -ne 0 ]]; then
         echo "Clean building $EXAMPLE" >&2
-        rm -rf Objects
+        rm -rf build/$EXAMPLE
     else
         echo "Building $EXAMPLE" >&2
     fi
-
-    mkdir -p Objects
-    touch "$HERE/Objects/.$EXAMPLE"
 
     (
         set -e
         "$CBUILD" $CBUILD_ARGS "$HERE/tfm.bootloader.cprj"
         "$CBUILD" $CBUILD_ARGS "$HERE/tfm.secure.cprj"
         "$CBUILD" $CBUILD_ARGS "$HERE/tfm.${EXAMPLE}_ns.cprj"
-        "$HERE/sign_binaries.sh"
-        [[ "$EXAMPLE" = "kws" ]] && "$HERE/sign_update_binaries.sh"
+        "$HERE/sign_binaries.sh" $EXAMPLE
+        [[ "$EXAMPLE" = "kws" ]] && "$HERE/sign_update_binaries.sh" || :
     )
 }
 

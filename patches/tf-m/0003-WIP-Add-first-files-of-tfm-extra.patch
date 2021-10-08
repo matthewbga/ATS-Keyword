@@ -1,0 +1,782 @@
+From c9925a649fc18d50de621c4daafcf3b9c0d63bbf Mon Sep 17 00:00:00 2001
+From: Mark Horvath <mark.horvath@arm.com>
+Date: Thu, 24 Jun 2021 15:19:41 +0200
+Subject: [PATCH 3/5] [WIP] Add first files of tfm-extra
+
+Change-Id: I378292ffaab0c887038d7515c1e97a002d4d124b
+Signed-off-by: Mark Horvath <mark.horvath@arm.com>
+---
+ CMakeLists.txt                                |   5 +-
+ config/config_default.cmake                   |   7 +
+ tfm_extra/CMakeLists.txt                      |  12 ++
+ tfm_extra/vad_an547/CMakeLists.txt            |   9 +
+ tfm_extra/vad_an547/ns_side/CMakeLists.txt    | 193 ++++++++++++++++++
+ tfm_extra/vad_an547/ns_side/FreeRTOSConfig.h  | 113 ++++++++++
+ tfm_extra/vad_an547/ns_side/config.cmake      |  10 +
+ .../ext/FreeRTOS-Kernel/CMakeLists.txt        |  23 +++
+ tfm_extra/vad_an547/ns_side/main_ns.c         | 159 +++++++++++++++
+ tfm_extra/vad_an547/ns_side/serial.c          |  54 +++++
+ tfm_extra/vad_an547/ns_side/serial.h          |  33 +++
+ .../vad_an547/secure_partition/CMakeLists.txt |  57 ++++++
+ .../secure_partition/vad_an547_sp.yaml        |  34 +++
+ .../secure_partition/vad_an547_sp_main.c      |  24 +++
+ tools/tfm_manifest_list.yaml                  |  16 ++
+ 15 files changed, 748 insertions(+), 1 deletion(-)
+ create mode 100644 tfm_extra/CMakeLists.txt
+ create mode 100644 tfm_extra/vad_an547/CMakeLists.txt
+ create mode 100644 tfm_extra/vad_an547/ns_side/CMakeLists.txt
+ create mode 100644 tfm_extra/vad_an547/ns_side/FreeRTOSConfig.h
+ create mode 100644 tfm_extra/vad_an547/ns_side/config.cmake
+ create mode 100644 tfm_extra/vad_an547/ns_side/ext/FreeRTOS-Kernel/CMakeLists.txt
+ create mode 100644 tfm_extra/vad_an547/ns_side/main_ns.c
+ create mode 100644 tfm_extra/vad_an547/ns_side/serial.c
+ create mode 100644 tfm_extra/vad_an547/ns_side/serial.h
+ create mode 100644 tfm_extra/vad_an547/secure_partition/CMakeLists.txt
+ create mode 100644 tfm_extra/vad_an547/secure_partition/vad_an547_sp.yaml
+ create mode 100644 tfm_extra/vad_an547/secure_partition/vad_an547_sp_main.c
+
+diff --git a/lib/tf-mCMakeLists.txt b/lib/tf-mCMakeLists.txt
+index 060beba2..dcf23745 100644
+--- a/lib/tf-mCMakeLists.txt
++++ b/lib/tf-mCMakeLists.txt
+@@ -85,7 +85,7 @@ add_subdirectory(lib/ext)
+ add_subdirectory(lib/fih)
+ add_subdirectory(tools)
+ add_subdirectory(docs)
+-if(NS)
++if(NS AND (${TFM_EXAMPLE_APPLICATION} STREQUAL NONE) )
+     # Set to ${TFM_TEST_REPO_PATH}/app by default
+     add_subdirectory(${TFM_APP_PATH} ${CMAKE_CURRENT_BINARY_DIR}/app)
+     add_subdirectory(${TFM_NS_LOG_PATH} ${CMAKE_CURRENT_BINARY_DIR}/ns_log)
+@@ -95,6 +95,9 @@ add_subdirectory(interface)
+ if(BL2)
+     add_subdirectory(bl2)
+ endif()
++if(NOT ${TFM_EXAMPLE_APPLICATION} STREQUAL NONE)
++    add_subdirectory(${TFM_EXTRA_PATH} ${CMAKE_CURRENT_BINARY_DIR}/extra)
++endif()
+ add_subdirectory(platform)
+ 
+ if(NS AND (TEST_S OR TEST_NS))
+diff --git a/lib/tf-mconfig/config_default.cmake b/lib/tf-mconfig/config_default.cmake
+index 57a401e2..8814e4a2 100644
+--- a/lib/tf-mconfig/config_default.cmake
++++ b/lib/tf-mconfig/config_default.cmake
+@@ -184,6 +184,13 @@ set(MCUBOOT_VERSION                     "fbeef9b"   CACHE STRING    "The version
+ set(PSA_ARCH_TESTS_PATH                 "DOWNLOAD"  CACHE PATH      "Path to PSA arch tests (or DOWNLOAD to fetch automatically")
+ set(PSA_ARCH_TESTS_VERSION              "02d145d"  CACHE STRING    "The version of PSA arch tests to use")
+ 
++set(TFM_EXTRA_PATH                      "${CMAKE_SOURCE_DIR}/tfm_extra"  CACHE PATH      "Path to T-FM-EXTRA repo (or DOWNLOAD to fetch automatically")
++set(TFM_EXTRA_VERSION                   "master"  CACHE PATH        "The version of tf-m-extra to use")
++
++#################################### Examples ##################################
++
++set(TFM_EXAMPLE_APPLICATION             "NONE"  CACHE STRING      "TF-M example to be build")
++
+ ################################################################################
+ ################################################################################
+ 
+diff --git a/lib/tf-m/tfm_extra/CMakeLists.txt b/lib/tf-m/tfm_extra/CMakeLists.txt
+new file mode 100644
+index 00000000..149b448d
+--- /dev/null
++++ b/lib/tf-m/tfm_extra/CMakeLists.txt
+@@ -0,0 +1,12 @@
++#-------------------------------------------------------------------------------
++# Copyright (c) 2021, Arm Limited. All rights reserved.
++#
++# SPDX-License-Identifier: BSD-3-Clause
++#
++#-------------------------------------------------------------------------------
++
++if(${TFM_EXAMPLE_APPLICATION} STREQUAL VAD_AN547)
++    add_subdirectory(vad_an547)
++else()
++    message(FATAL_ERROR "Unkown TF-M example application: ${TFM_EXAMPLE_APPLICATION}")
++endif()
+diff --git a/lib/tf-m/tfm_extra/vad_an547/CMakeLists.txt b/lib/tf-m/tfm_extra/vad_an547/CMakeLists.txt
+new file mode 100644
+index 00000000..d16ed447
+--- /dev/null
++++ b/lib/tf-m/tfm_extra/vad_an547/CMakeLists.txt
+@@ -0,0 +1,9 @@
++#-------------------------------------------------------------------------------
++# Copyright (c) 2021, Arm Limited. All rights reserved.
++#
++# SPDX-License-Identifier: BSD-3-Clause
++#
++#-------------------------------------------------------------------------------
++
++add_subdirectory(secure_partition)
++add_subdirectory(ns_side)
+diff --git a/lib/tf-m/tfm_extra/vad_an547/ns_side/CMakeLists.txt b/lib/tf-m/tfm_extra/vad_an547/ns_side/CMakeLists.txt
+new file mode 100644
+index 00000000..f5cb04c0
+--- /dev/null
++++ b/lib/tf-m/tfm_extra/vad_an547/ns_side/CMakeLists.txt
+@@ -0,0 +1,193 @@
++#-------------------------------------------------------------------------------
++# Copyright (c) 2021, Arm Limited. All rights reserved.
++#
++# SPDX-License-Identifier: BSD-3-Clause
++#
++#-------------------------------------------------------------------------------
++
++include(config.cmake)
++
++############################# External Dependencies ############################################
++
++add_subdirectory(ext/FreeRTOS-Kernel)
++
++set(INTERFACE_SRC_DIR    ${CMAKE_SOURCE_DIR}/interface/src)
++set(INTERFACE_INC_DIR    ${CMAKE_SOURCE_DIR}/interface/include)
++
++#################### TF-M NS interface (header only) ###########################
++
++add_library(tfm_ns_interface INTERFACE)
++
++# Include interface headers exported by TF-M
++target_include_directories(tfm_ns_interface
++    INTERFACE
++        ${INTERFACE_INC_DIR}
++        ${CMAKE_BINARY_DIR}/generated/interface/include
++)
++
++
++# PSA interface files are generated from a template
++add_dependencies(tfm_ns_interface
++    tfm_generated_files
++)
++
++# Include selection of Secure Partitions from TF-M build.
++# It can be replaced by NS side configurations later.
++target_link_libraries(tfm_ns_interface
++    INTERFACE
++        tfm_partition_defs
++)
++
++target_compile_definitions(tfm_ns_interface
++    INTERFACE
++        $<$<BOOL:${TFM_PSA_API}>:TFM_PSA_API>
++        $<$<BOOL:${TFM_NS_CLIENT_IDENTIFICATION}>:TFM_NS_CLIENT_IDENTIFICATION>
++)
++
++############################# TFM NS app #######################################
++
++add_executable(tfm_ns)
++
++target_sources(tfm_ns
++    PRIVATE
++        main_ns.c
++        serial.c
++        ${VAD_AN547_FREERTOS_KERNEL_SRC_PATH}/portable/GCC/ARM_CM33_NTZ/non_secure/port.c
++        ${VAD_AN547_FREERTOS_KERNEL_SRC_PATH}/portable/GCC/ARM_CM33_NTZ/non_secure/portasm.c
++        ${VAD_AN547_FREERTOS_KERNEL_SRC_PATH}/list.c
++        ${VAD_AN547_FREERTOS_KERNEL_SRC_PATH}/queue.c
++        ${VAD_AN547_FREERTOS_KERNEL_SRC_PATH}/tasks.c
++        ${VAD_AN547_FREERTOS_KERNEL_SRC_PATH}/timers.c
++        ${VAD_AN547_FREERTOS_KERNEL_SRC_PATH}/event_groups.c
++        ${VAD_AN547_FREERTOS_KERNEL_SRC_PATH}/portable/MemMang/heap_4.c
++        ${VAD_AN547_FREERTOS_KERNEL_SRC_PATH}/portable/ThirdParty/GCC/ARM_CM33_TFM/os_wrapper_freertos.c
++)
++
++target_include_directories(tfm_ns
++    PRIVATE
++        .
++        ${VAD_AN547_FREERTOS_KERNEL_SRC_PATH}/include/
++        ${VAD_AN547_FREERTOS_KERNEL_SRC_PATH}/portable/GCC/ARM_CM33_NTZ/non_secure/
++        ${TFM_TEST_PATH}/../ns_interface
++
++)
++
++target_link_libraries(tfm_ns
++    PRIVATE
++        platform_ns
++        tfm_s_veneers
++        tfm_api_ns
++)
++
++set_target_properties(tfm_ns PROPERTIES
++    SUFFIX ".axf"
++    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
++)
++
++target_link_options(tfm_ns
++    PRIVATE
++        $<$<C_COMPILER_ID:GNU>:-Wl,-Map=${CMAKE_BINARY_DIR}/bin/tfm_ns.map>
++        $<$<C_COMPILER_ID:ARMClang>:--map>
++        $<$<C_COMPILER_ID:IAR>:--map\;${CMAKE_BINARY_DIR}/bin/tfm_ns.map>
++)
++
++add_convert_to_bin_target(tfm_ns)
++###################### TF-M NS interface api (NS lib) ##########################
++
++add_library(tfm_api_ns STATIC)
++
++target_sources(tfm_api_ns
++    PRIVATE
++        $<$<BOOL:${TFM_NS_CLIENT_IDENTIFICATION}>:${NS_INTERFACE_DIR}/ns_client_id/tfm_nspm_svc_handler.c>
++        $<$<BOOL:${TFM_NS_CLIENT_IDENTIFICATION}>:${NS_INTERFACE_DIR}/ns_client_id/tfm_nspm_api.c>
++)
++
++if (${TFM_PSA_API})
++    target_sources(tfm_api_ns PRIVATE
++        $<$<OR:$<BOOL:{$FORWARD_PROT_MSG}>,$<BOOL:${TFM_PARTITION_PLATFORM}>>:${INTERFACE_SRC_DIR}/tfm_platform_ipc_api.c>
++        $<$<OR:$<BOOL:{$FORWARD_PROT_MSG}>,$<BOOL:${TFM_PARTITION_PROTECTED_STORAGE}>>:${INTERFACE_SRC_DIR}/tfm_ps_ipc_api.c>
++        $<$<OR:$<BOOL:{$FORWARD_PROT_MSG}>,$<BOOL:${TFM_PARTITION_INTERNAL_TRUSTED_STORAGE}>>:${INTERFACE_SRC_DIR}/tfm_its_ipc_api.c>
++        $<$<OR:$<BOOL:{$FORWARD_PROT_MSG}>,$<BOOL:${TFM_PARTITION_CRYPTO}>>:${INTERFACE_SRC_DIR}/tfm_crypto_ipc_api.c>
++        $<$<OR:$<BOOL:{$FORWARD_PROT_MSG}>,$<BOOL:${TFM_PARTITION_INITIAL_ATTESTATION}>>:${INTERFACE_SRC_DIR}/tfm_initial_attestation_ipc_api.c>
++        $<$<BOOL:${TFM_PARTITION_FIRMWARE_UPDATE}>:${INTERFACE_SRC_DIR}/tfm_firmware_update_ipc_api.c>
++        )
++
++    if (TFM_MULTI_CORE_TOPOLOGY)
++        target_sources(tfm_api_ns PRIVATE
++            ${INTERFACE_SRC_DIR}/multi_core/tfm_multi_core_ns_api.c
++            ${INTERFACE_SRC_DIR}/multi_core/tfm_multi_core_psa_ns_api.c
++            $<$<NOT:$<BOOL:${TFM_MULTI_CORE_NS_OS_MAILBOX_THREAD}>>:${INTERFACE_SRC_DIR}/multi_core/tfm_ns_mailbox.c>
++            $<$<AND:$<BOOL:${TFM_MULTI_CORE_NS_OS}>,$<BOOL:${TFM_MULTI_CORE_NS_OS_MAILBOX_THREAD}>>:${INTERFACE_SRC_DIR}/multi_core/tfm_ns_mailbox_thread.c>
++        )
++
++        # NS RTOS specific implementation of NS mailbox
++        target_sources(tfm_api_ns PRIVATE
++            $<$<BOOL:${TFM_MULTI_CORE_NS_OS}>:${NS_INTERFACE_DIR}/multi_core/tfm_ns_mailbox_rtos_api.c>
++            $<$<BOOL:${TEST_NS}>:${NS_INTERFACE_DIR}/multi_core/tfm_ns_mailbox_test.c>
++        )
++    else()
++        target_sources(tfm_api_ns PRIVATE
++           ${INTERFACE_SRC_DIR}/tfm_psa_ns_api.c
++            ${TFM_APP_PATH}/tfm_ns_interface.c
++        )
++
++        target_include_directories(tfm_api_ns PRIVATE
++            ${TFM_TEST_PATH}/../ns_interface
++        )
++
++    endif()
++else()
++    target_sources(tfm_api_ns PRIVATE
++        $<$<BOOL:${TFM_PARTITION_PLATFORM}>:${INTERFACE_SRC_DIR}/tfm_platform_func_api.c>
++        $<$<BOOL:${TFM_PARTITION_AUDIT_LOG}>:${INTERFACE_SRC_DIR}/tfm_audit_func_api.c>
++        $<$<BOOL:${TFM_PARTITION_PROTECTED_STORAGE}>:${INTERFACE_SRC_DIR}/tfm_ps_func_api.c>
++        $<$<BOOL:${TFM_PARTITION_INTERNAL_TRUSTED_STORAGE}>:${INTERFACE_SRC_DIR}/tfm_its_func_api.c>
++        $<$<BOOL:${TFM_PARTITION_CRYPTO}>:${INTERFACE_SRC_DIR}/tfm_crypto_func_api.c>
++        $<$<BOOL:${TFM_PARTITION_INITIAL_ATTESTATION}>:${INTERFACE_SRC_DIR}/tfm_initial_attestation_func_api.c>
++        $<$<BOOL:${TFM_PARTITION_FIRMWARE_UPDATE}>:${INTERFACE_SRC_DIR}/tfm_firmware_update_func_api.c>
++    )
++
++    # NS specific implementation of NS interface dispacther
++    target_sources(tfm_api_ns PRIVATE
++        ${TFM_APP_PATH}/tfm_ns_interface.c
++    )
++endif()
++
++target_link_libraries(tfm_api_ns
++    PUBLIC
++        tfm_ns_interface
++    PRIVATE
++        platform_ns
++        # CMSIS is currently only required to provide the NS client IDs. In
++        # future, this should probably be made more OS agnostic
++        $<$<BOOL:${TFM_NS_CLIENT_IDENTIFICATION}>:CMSIS_5_tfm_ns>
++)
++
++############################# CMSIS ############################################
++
++include(FetchContent)
++
++set(FETCHCONTENT_QUIET FALSE)
++cmake_policy(SET CMP0079 NEW)
++
++add_library(CMSIS_5_tfm_ns INTERFACE)
++
++target_sources(CMSIS_5_tfm_ns
++    INTERFACE
++        ${CMSIS_5_PATH}/RTOS2/RTX/Config/RTX_Config.c
++        ${CMSIS_5_PATH}/RTOS2/RTX/Source/rtx_lib.c
++        ${TFM_APP_PATH}/os_wrapper_cmsis_rtos_v2.c
++)
++
++target_include_directories(CMSIS_5_tfm_ns
++    INTERFACE
++        ${CMSIS_5_PATH}/Core/Include
++        ${CMSIS_5_PATH}/RTOS2/Include
++        ${CMSIS_5_PATH}/RTOS2/RTX/Include
++        ${CMSIS_5_PATH}/RTOS2/RTX/Config
++)
++
++target_link_libraries(CMSIS_5_tfm_ns
++    INTERFACE
++        platform_ns
++)
+diff --git a/lib/tf-m/tfm_extra/vad_an547/ns_side/config.cmake b/lib/tf-m/tfm_extra/vad_an547/ns_side/config.cmake
+new file mode 100644
+index 00000000..fd500aa8
+--- /dev/null
++++ b/lib/tf-m/tfm_extra/vad_an547/ns_side/config.cmake
+@@ -0,0 +1,10 @@
++#-------------------------------------------------------------------------------
++# Copyright (c) 2021, Arm Limited. All rights reserved.
++#
++# SPDX-License-Identifier: BSD-3-Clause
++#
++#-------------------------------------------------------------------------------
++
++# External dependency FreeRTOS-Kernel
++set(VAD_AN547_FREERTOS_KERNEL_SRC_PATH   "DOWNLOAD"  CACHE PATH      "Path to FreeRTOS-Kernel (or DOWNLOAD to fetch automatically")
++set(VAD_AN547_FREERTOS_KERNEL_VERSION    "9c048e0c71ee43630394981a86f5265bc57131e4"  CACHE STRING    "The version of FreeRTOS-Kernel to use")
+diff --git a/lib/tf-m/tfm_extra/vad_an547/ns_side/ext/FreeRTOS-Kernel/CMakeLists.txt b/lib/tf-m/tfm_extra/vad_an547/ns_side/ext/FreeRTOS-Kernel/CMakeLists.txt
+new file mode 100644
+index 00000000..7abccaec
+--- /dev/null
++++ b/lib/tf-m/tfm_extra/vad_an547/ns_side/ext/FreeRTOS-Kernel/CMakeLists.txt
+@@ -0,0 +1,23 @@
++#-------------------------------------------------------------------------------
++# Copyright (c) 2021, Arm Limited. All rights reserved.
++#
++# SPDX-License-Identifier: BSD-3-Clause
++#
++#-------------------------------------------------------------------------------
++include(FetchContent)
++set(FETCHCONTENT_QUIET FALSE)
++# Set to not download submodules if that option is available
++if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.16.0")
++    cmake_policy(SET CMP0097 NEW)
++endif()
++if ("${VAD_AN547_FREERTOS_KERNEL_SRC_PATH}" STREQUAL "DOWNLOAD")
++    FetchContent_Declare(vad_an547_freertos_kernel
++        GIT_REPOSITORY https://github.com/FreeRTOS/FreeRTOS-Kernel.git
++        GIT_TAG ${VAD_AN547_FREERTOS_KERNEL_VERSION}
++    )
++    FetchContent_GetProperties(vad_an547_freertos_kernel)
++    if (NOT vad_an547_freertos_kernel)
++        FetchContent_Populate(vad_an547_freertos_kernel)
++        set(VAD_AN547_FREERTOS_KERNEL_SRC_PATH ${vad_an547_freertos_kernel_SOURCE_DIR} CACHE PATH "Path to FreeRTOS-Kernel (or DOWNLOAD to fetch automatically" FORCE)
++    endif ()
++endif ()
+\ No newline at end of file
+diff --git a/lib/tf-m/tfm_extra/vad_an547/ns_side/main_ns.c b/lib/tf-m/tfm_extra/vad_an547/ns_side/main_ns.c
+new file mode 100644
+index 00000000..50bd2930
+--- /dev/null
++++ b/lib/tf-m/tfm_extra/vad_an547/ns_side/main_ns.c
+@@ -0,0 +1,159 @@
++/*
++ * Copyright (c) 2017-2018 Arm Limited
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++#include "stdio.h"
++#include "FreeRTOS.h"
++#include "task.h"
++#include "tfm_ns_interface.h"
++#include "psa/protected_storage.h"
++#include "serial.h"
++
++/*
++ * Semihosting is a mechanism that enables code running on an ARM target
++ * to communicate and use the Input/Output facilities of a host computer
++ * that is running a debugger.
++ * There is an issue where if you use armclang at -O0 optimisation with
++ * no parameters specified in the main function, the initialisation code
++ * contains a breakpoint for semihosting by default. This will stop the
++ * code from running before main is reached.
++ * Semihosting can be disabled by defining __ARM_use_no_argv symbol
++ * (or using higher optimization level).
++ */
++#if defined (__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050)
++__asm("  .global __ARM_use_no_argv\n");
++#endif
++
++extern uint32_t tfm_ns_interface_init(void);
++
++uint8_t ucHeap[ configTOTAL_HEAP_SIZE ];
++
++/*
++ * Main task to run TFM and ethernet communication testing
++ */
++static void testTask( void *pvParameters )
++{
++    uint32_t my_secret = 0xDEADBEEF;
++    uint32_t read_length;
++
++    /* Test TFM PSA API call */
++    printf("calling PSA secure service... stashing secret %x\r\n", my_secret);
++    psa_ps_set(420, sizeof(uint32_t), &my_secret, 0);
++
++    printf("get secret from PSA: ");
++    psa_ps_get(420, 0, sizeof(uint32_t), &my_secret, &read_length);
++
++    printf("%x\r\n", my_secret);
++
++    /* Teste ethernet communication */
++    printf("\r\n\nTF-M test successful\r\n");
++
++    while (1) {
++    }
++}
++
++
++int main()
++{
++    tfm_ns_interface_init();
++
++    serial_init();
++  
++    xTaskCreate(testTask, "test task", configMINIMAL_STACK_SIZE*2, NULL, configMAX_PRIORITIES-2, NULL);
++  
++    /* Start the scheduler itself. */
++    vTaskStartScheduler();
++
++    printf("End of main. Halting!\r\n");
++    while (1)
++    {
++    }
++}
++
++
++/* -----------------------------------------------------------------------------
++ *  Helper functions
++ * -----------------------------------------------------------------------------
++ */
++void vAssertCalled( const char * pcFile, unsigned long ulLine )
++{
++    printf("Assert called %s:%lu", pcFile, ulLine);
++    while(1);
++}
++
++// void vLoggingPrint( const char * pcMessage )
++// {
++//     // this needs to be reworked to take infinite arguments and pass along them to printf
++//     if (xSemaphoreTake(uartSemaphore, portMAX_DELAY) == pdTRUE) {
++//         printf("%s", pcMessage);
++//         xSemaphoreGive(uartSemaphore);
++//     }
++// }
++
++void vApplicationStackOverflowHook( TaskHandle_t xTask, char * pcTaskName )
++{
++    // pfff stackoverflow
++    printf("ERROR: Stack Overflow in task: %s", pcTaskName);
++    while(1);
++}
++
++/* configUSE_STATIC_ALLOCATION is set to 1, so the application must provide an
++implementation of vApplicationGetIdleTaskMemory() to provide the memory that is
++used by the Idle task. */
++void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize )
++{
++    /* If the buffers to be provided to the Idle task are declared inside this
++    function then they must be declared static - otherwise they will be allocated on
++    the stack and so not exists after this function exits. */
++    static StaticTask_t xIdleTaskTCB;
++    static StackType_t uxIdleTaskStack[ configMINIMAL_STACK_SIZE ];
++
++    /* Pass out a pointer to the StaticTask_t structure in which the Idle task's
++    state will be stored. */
++    *ppxIdleTaskTCBBuffer = &xIdleTaskTCB;
++
++    /* Pass out the array that will be used as the Idle task's stack. */
++    *ppxIdleTaskStackBuffer = uxIdleTaskStack;
++
++    /* Pass out the size of the array pointed to by *ppxIdleTaskStackBuffer.
++    Note that, as the array is necessarily of type StackType_t,
++    configMINIMAL_STACK_SIZE is specified in words, not bytes. */
++    *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
++}
++/*-----------------------------------------------------------*/
++
++/* configUSE_STATIC_ALLOCATION and configUSE_TIMERS are both set to 1, so the
++application must provide an implementation of vApplicationGetTimerTaskMemory()
++to provide the memory that is used by the Timer service task. */
++void vApplicationGetTimerTaskMemory( StaticTask_t **ppxTimerTaskTCBBuffer, StackType_t **ppxTimerTaskStackBuffer, uint32_t *pulTimerTaskStackSize )
++{
++    /* If the buffers to be provided to the Timer task are declared inside this
++    function then they must be declared static - otherwise they will be allocated on
++    the stack and so not exists after this function exits. */
++    static StaticTask_t xTimerTaskTCB;
++    static StackType_t uxTimerTaskStack[ configTIMER_TASK_STACK_DEPTH ];
++
++    /* Pass out a pointer to the StaticTask_t structure in which the Timer
++    task's state will be stored. */
++    *ppxTimerTaskTCBBuffer = &xTimerTaskTCB;
++
++    /* Pass out the array that will be used as the Timer task's stack. */
++    *ppxTimerTaskStackBuffer = uxTimerTaskStack;
++
++    /* Pass out the size of the array pointed to by *ppxTimerTaskStackBuffer.
++    Note that, as the array is necessarily of type StackType_t,
++    configMINIMAL_STACK_SIZE is specified in words, not bytes. */
++    *pulTimerTaskStackSize = configTIMER_TASK_STACK_DEPTH;
++}
+diff --git a/lib/tf-m/tfm_extra/vad_an547/ns_side/serial.c b/lib/tf-m/tfm_extra/vad_an547/ns_side/serial.c
+new file mode 100644
+index 00000000..8de74678
+--- /dev/null
++++ b/lib/tf-m/tfm_extra/vad_an547/ns_side/serial.c
+@@ -0,0 +1,54 @@
++/*
++* Copyright (c) 2017-2021 Arm Limited
++*
++* Licensed under the Apache License, Version 2.0 (the "License");
++* you may not use this file except in compliance with the License.
++* You may obtain a copy of the License at
++*
++*     http://www.apache.org/licenses/LICENSE-2.0
++*
++* Unless required by applicable law or agreed to in writing, software
++* distributed under the License is distributed on an "AS IS" BASIS,
++* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++* See the License for the specific language governing permissions and
++* limitations under the License.
++*/
++
++#include <stdio.h>
++#include <string.h>
++#include "device_cfg.h"
++#include "Driver_USART.h"
++#include "serial.h"
++
++extern ARM_DRIVER_USART Driver_USART0;
++
++void serial_init(void)
++{
++    Driver_USART0.Initialize(NULL);
++    Driver_USART0.Control(ARM_USART_MODE_ASYNCHRONOUS, DEFAULT_UART_BAUDRATE);
++}
++
++void serial_print(char *str)
++{
++    (void)Driver_USART0.Send(str, strlen(str));
++}
++
++/* Struct FILE is implemented in stdio.h. Used to redirect printf to UART0 */
++FILE __stdout;
++/* Redirects armclang printf to UART */
++int fputc(int ch, FILE *f)
++{
++    if (Driver_USART0.Send(&ch, 1) == ARM_DRIVER_OK) {
++        return ch;
++    }
++    return EOF;
++}
++
++/* Redirects gcc printf to UART0 */
++int _write(int fd, char *str, int len)
++{
++    if (Driver_USART0.Send(str, len) == ARM_DRIVER_OK) {
++        return len;
++    }
++    return 0;
++}
+diff --git a/lib/tf-m/tfm_extra/vad_an547/ns_side/serial.h b/lib/tf-m/tfm_extra/vad_an547/ns_side/serial.h
+new file mode 100644
+index 00000000..77f15a45
+--- /dev/null
++++ b/lib/tf-m/tfm_extra/vad_an547/ns_side/serial.h
+@@ -0,0 +1,33 @@
++/*
++* Copyright (c) 2017 Arm Limited
++*
++* Licensed under the Apache License, Version 2.0 (the "License");
++* you may not use this file except in compliance with the License.
++* You may obtain a copy of the License at
++*
++*     http://www.apache.org/licenses/LICENSE-2.0
++*
++* Unless required by applicable law or agreed to in writing, software
++* distributed under the License is distributed on an "AS IS" BASIS,
++* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++* See the License for the specific language governing permissions and
++* limitations under the License.
++*/
++
++#ifndef __SERIAL_H__
++#define __SERIAL_H__
++
++
++#include <stddef.h>
++
++/**
++ * \brief Initializes default UART device
++ */
++void serial_init(void);
++
++/**
++ * \brief Prints a string through the default UART device
++ */
++void serial_print(char *str);
++
++#endif /* __SERIAL_H__ */
+diff --git a/lib/tf-m/tfm_extra/vad_an547/secure_partition/CMakeLists.txt b/lib/tf-m/tfm_extra/vad_an547/secure_partition/CMakeLists.txt
+new file mode 100644
+index 00000000..4be3d3d2
+--- /dev/null
++++ b/lib/tf-m/tfm_extra/vad_an547/secure_partition/CMakeLists.txt
+@@ -0,0 +1,57 @@
++#-------------------------------------------------------------------------------
++# Copyright (c) 2021, Arm Limited. All rights reserved.
++#
++# SPDX-License-Identifier: BSD-3-Clause
++#
++#-------------------------------------------------------------------------------
++
++cmake_minimum_required(VERSION 3.15)
++cmake_policy(SET CMP0079 NEW)
++
++add_library(vad_an547_sp STATIC)
++
++target_sources(vad_an547_sp
++    PRIVATE
++        vad_an547_sp_main.c
++)
++
++target_include_directories(vad_an547_sp
++    PRIVATE
++        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
++        ${CMAKE_BINARY_DIR}/generated/vad_an547/secure_partition
++)
++target_include_directories(tfm_partitions
++    INTERFACE
++        ${CMAKE_BINARY_DIR}/generated/vad_an547/secure_partition
++)
++
++
++# The generated sources
++target_sources(vad_an547_sp
++    PRIVATE
++        ${CMAKE_BINARY_DIR}/generated/vad_an547/secure_partition/auto_generated/intermedia_vad_an547_sp.c
++)
++target_sources(tfm_partitions
++    INTERFACE
++        $<$<BOOL:${TFM_PSA_API}>:
++            ${CMAKE_BINARY_DIR}/generated/vad_an547/secure_partition/auto_generated/load_info_vad_an547_sp.c>
++)
++
++target_link_libraries(vad_an547_sp
++    PRIVATE
++        tfm_secure_api
++        psa_interface
++        platform_s
++)
++
++############################ Partition Defs ####################################
++
++target_link_libraries(tfm_partitions
++    INTERFACE
++        vad_an547_sp
++)
++
++target_compile_definitions(tfm_partition_defs
++    INTERFACE
++        VAD_AN547_PARTITION
++)
+diff --git a/lib/tf-m/tfm_extra/vad_an547/secure_partition/vad_an547_sp.yaml b/lib/tf-m/tfm_extra/vad_an547/secure_partition/vad_an547_sp.yaml
+new file mode 100644
+index 00000000..5cc673cb
+--- /dev/null
++++ b/lib/tf-m/tfm_extra/vad_an547/secure_partition/vad_an547_sp.yaml
+@@ -0,0 +1,34 @@
++#-------------------------------------------------------------------------------
++# Copyright (c) 2021, Arm Limited. All rights reserved.
++#
++# SPDX-License-Identifier: BSD-3-Clause
++#
++#-------------------------------------------------------------------------------
++
++{
++  "psa_framework_version": 1.0,
++  "name": "TFM_SP_VAD",
++  "type": "APPLICATION-ROT",
++  "priority": "NORMAL",
++  "entry_point": "vad_main",
++  "stack_size": "0x400",
++  "services": [
++    {
++      "name": "TFM_VAD_SERVICE",
++      "sid": "0x00000000",
++      "non_secure_clients": true,
++      "version": 1,
++      "version_policy": "STRICT"
++    }
++  ],
++  "secure_functions": [
++    {
++      "name": "TFM_VAD_FUNC",
++      "signal": "TFM_VAD_FUNC_SIG",
++      "sid": "0x00000000",
++      "non_secure_clients": true,
++      "version": 1,
++      "version_policy": "STRICT"
++    }
++  ]
++}
+diff --git a/lib/tf-m/tfm_extra/vad_an547/secure_partition/vad_an547_sp_main.c b/lib/tf-m/tfm_extra/vad_an547/secure_partition/vad_an547_sp_main.c
+new file mode 100644
+index 00000000..cb21f1b5
+--- /dev/null
++++ b/lib/tf-m/tfm_extra/vad_an547/secure_partition/vad_an547_sp_main.c
+@@ -0,0 +1,24 @@
++/*
++ * Copyright (c) 2021, Arm Limited. All rights reserved.
++ *
++ * SPDX-License-Identifier: BSD-3-Clause
++ *
++ */
++
++#include <stdint.h>
++
++#include "psa/service.h"
++#include "log/tfm_log.h"
++#include "tfm/tfm_spm_services.h"
++#include "tfm_plat_test.h"
++#include "psa_manifest/vad_an547_sp.h"
++
++void vad_main(void)
++{
++    psa_signal_t signals;
++
++    while (1) {
++        signals = psa_wait(TFM_VAD_SERVICE_SIGNAL, PSA_BLOCK);
++    }
++}
++
+diff --git a/lib/tf-mtools/tfm_manifest_list.yaml b/lib/tf-mtools/tfm_manifest_list.yaml
+index a7674a5d..1d5b02f4 100644
+--- a/lib/tf-mtools/tfm_manifest_list.yaml
++++ b/lib/tf-mtools/tfm_manifest_list.yaml
+@@ -290,5 +290,21 @@
+          ]
+       }
+     },
++    {
++      "name": "VAD AN547 Example Partition",
++      "short_name": "VAD_AN547_SP",
++      "manifest": "${TFM_EXTRA_PATH}/vad_an547/secure_partition/vad_an547_sp.yaml",
++      "source_path": "${TFM_EXTRA_PATH}",
++      "tfm_partition_ipc": true,
++      "conditional": "VAD_AN547_PARTITION",
++      "version_major": 0,
++      "version_minor": 1,
++      "pid": 274,
++      "linker_pattern": {
++        "library_list": [
++           "*vad_an547_sp.*"
++        ]
++      }
++    },
+   ]
+ }
+-- 
+2.25.1
+

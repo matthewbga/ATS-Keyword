@@ -24,11 +24,11 @@ def fvp_path():
 
 @pytest.fixture
 def binary_path():
-    yield os.getcwd() + '/../Objects'
+    yield os.path.dirname(os.path.abspath(__file__)) + '/../../build'
 
 @pytest.fixture
 def vsi_script_path():
-    yield os.getcwd() + '/../lib/VHT/audio/arm_vsi/audio_in/python'
+    yield os.path.dirname(os.path.abspath(__file__)) + '/../../lib/VHT/interface/audio/python'
 
 @pytest.fixture(scope="function")
 def fvp(fvp_path, binary_path, vsi_script_path):
@@ -38,15 +38,18 @@ def fvp(fvp_path, binary_path, vsi_script_path):
     # Note: It can take few seconds to terminate the FVP 
     cmdline = [
         fvp_path, 
-        '-a',  f'cpu_core.cpu0*={binary_path}/bl2.axf', 
-        '--data', f'{binary_path}/tfm_s_signed.bin@0x38000000', 
-        '--data', f'{binary_path}/tfm_ns_signed.bin@0x28060000', 
+        '-a',  f'cpu_core.cpu0*={binary_path}/bootloader/bl2.axf', 
+        '--data', f'{binary_path}/secure_partition/tfm_s_signed.bin@0x38000000', 
+        '--data', f'{binary_path}/kws/tfm_ns_signed.bin@0x28060000', 
+        '-C', 'cpu_core.core_clk.mul=200000000',
         '-C', 'cpu_core.mps3_board.visualisation.disable-visualisation=1', 
         '-C', 'cpu_core.mps3_board.telnetterminal0.start_telnet=0', 
         '-C', 'cpu_core.mps3_board.uart0.out_file=-', 
         '-C', 'cpu_core.mps3_board.uart0.unbuffered_output=1', 
         '-C', 'cpu_core.mps3_board.uart0.shutdown_on_eot=1',
         '-C', 'cpu_core.cpu0.semihosting-enable=1',
+        '-C', 'cpu_core.mps3_board.smsc_91c111.enabled=1', 
+        '-C', 'cpu_core.mps3_board.hostbridge.userNetworking=1', 
         '-C', 'cpu_core.mps3_board.DISABLE_GATING=1',
         '-V', f'{vsi_script_path}'
     ]
@@ -65,17 +68,11 @@ def test_ml(fvp):
         'starting scheduler from ns main',
         'Ethos-U55 device initialised',
         'ML interface initialised',
-        'INFO - For timestamp: 0.000000 (inference #: 0); label: on, score: 0.996094; threshold: 0.800000',
-        'INFO - For timestamp: 0.500000 (inference #: 1); label: on, score: 0.996094; threshold: 0.800000',
-        'INFO - For timestamp: 1.000000 (inference #: 2); label: on, score: 0.917969; threshold: 0.800000',
-        'INFO - For timestamp: 1.500000 (inference #: 3); label: off, score: 0.996094; threshold: 0.800000',
-        'INFO - For timestamp: 2.000000 (inference #: 4); label: <none>; threshold: 0.000000',
-        'INFO - For timestamp: 2.500000 (inference #: 5); label: <none>; threshold: 0.000000',
-        'INFO - For timestamp: 3.000000 (inference #: 6); label: go, score: 0.984375; threshold: 0.800000',
-        'INFO - For timestamp: 3.500000 (inference #: 7); label: <none>; threshold: 0.000000',
-        'INFO - For timestamp: 4.000000 (inference #: 8); label: <none>; threshold: 0.000000',
-        'INFO - For timestamp: 4.500000 (inference #: 9); label: <none>; threshold: 0.000000',
-        'INFO - For timestamp: 5.000000 (inference #: 10); label: _silence_, score: 0.996094; threshold: 0.800000',
+        'ML_HEARD_ON',
+        'ML_HEARD_OFF',
+        'ML UNKNOWN',
+        'ML_HEARD_GO',
+        'ML UNKNOWN'
     ]
 
     index = 0

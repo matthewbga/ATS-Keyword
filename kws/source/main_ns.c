@@ -95,12 +95,11 @@ int main()
 
     serial_init();
 
-    xTaskCreate(ml_task,    "ML task",    configMINIMAL_STACK_SIZE*4, NULL, tskIDLE_PRIORITY+1, NULL);    
+    xTaskCreate(ml_task,    "ML task",    configMINIMAL_STACK_SIZE*4, NULL, tskIDLE_PRIORITY+1, NULL);
     xTaskCreate(blink_task, "blink task", configMINIMAL_STACK_SIZE*2, NULL, tskIDLE_PRIORITY,   NULL);
 
     xLoggingTaskInitialize(configMINIMAL_STACK_SIZE, tskIDLE_PRIORITY+2, 90);
 
-#if 0
     // FIXME: put static bool variable guard here so this only runs once ?
     mbedtls_platform_set_calloc_free( prvCalloc, vPortFree );
     vDevModeKeyProvisioning();
@@ -117,7 +116,6 @@ int main()
                            ucGatewayAddress,
                            ucDNSServerAddress,
                            ucMACAddress );
-#endif                           
 
     print_log("starting scheduler from ns main\r\n");
     /* Start the scheduler itself. */

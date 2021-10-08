@@ -14,37 +14,12 @@
  * limitations under the License.
  */
 
-#include "stdio.h"
-#include "string.h"
-#include "cmsis.h"
-#include "serial.h"
-#include "print_log.h"
-
-#include "blink_task.h"
-#include "ml_interface.h"
-
+#include <stdio.h>
 #include "FreeRTOS.h"
 #include "task.h"
-#include "FreeRTOS_IP.h"
-
-/* includes for TFM */
 #include "tfm_ns_interface.h"
 #include "psa/protected_storage.h"
-#include "psa/crypto.h"
-
-/* includes for IoT Cloud */
-#include "iot_mqtt.h"
-#include "iot_secure_sockets.h"
-#include "iot_network_freertos.h"
-#include "iot_logging_task.h"
-#include "aws_dev_mode_key_provisioning.h"
-
-extern int mbedtls_platform_set_calloc_free( void * (*calloc_func)( size_t, size_t ),
-                                             void (*free_func)( void * ) );
-static void * prvCalloc( size_t xNmemb,
-                         size_t xSize );
-
-extern void DEMO_RUNNER_RunDemos( void );
+#include "serial.h"
 
 /*
  * Semihosting is a mechanism that enables code running on an ARM target
@@ -63,39 +38,34 @@ __asm("  .global __ARM_use_no_argv\n");
 
 extern uint32_t tfm_ns_interface_init(void);
 
-#define FREERTOS_HIGHEST_TASK_PRIORITY      (configMAX_PRIORITIES - 1)
-
 uint8_t ucHeap[ configTOTAL_HEAP_SIZE ];
 
-/**
- * Network information
-*/
-/* The MAC address array is not declared const as the MAC address will
-normally be read from an EEPROM and not hard coded (in real deployed
-applications).*/
-static uint8_t ucMACAddress[ 6 ] = { 0x00, 0x02, 0xF7, 0x00, 0x74, 0x15 };  // mac of my MPS3 eth
-/* Define the network addressing.  These parameters will be used if either
-ipconfigUDE_DHCP is 0 or if ipconfigUSE_DHCP is 1 but DHCP auto configuration
-failed. */
-static uint8_t ucIPAddress[ 4 ] = { 192, 168, 1, 215 };
-static uint8_t ucNetMask[ 4 ] = { 255, 0, 0, 0 };
-static uint8_t ucGatewayAddress[ 4 ] = { 10, 10, 10, 1 };
-/* The following is the address of an OpenDNS server. */
-static uint8_t ucDNSServerAddress[ 4 ] = { 208, 67, 222, 222 };
+/*
+ * Main task to run TFM and ethernet communication testing
+ */
+static void blink_task( void *pvParameters )
+{
+    uint32_t *fpgaio_leds = (uint32_t *)0x49302000;
+    const TickType_t xDelay = portTICK_PERIOD_MS * 200;
 
-psa_key_handle_t xOTACodeVerifyKeyHandle = NULL;
+    printf("FreeRTOS blink task started\r\n");
+    while (1) {
+        *fpgaio_leds = 0xFF;
+        printf("LED on\r\n");
+        vTaskDelay(xDelay);
+        *fpgaio_leds = 0x00;
+        printf("LED off\r\n");
+        vTaskDelay(xDelay);
+    }
+}
 
 int main()
 {
-    BaseType_t ret = pdPASS;
-
     tfm_ns_interface_init();
-
     serial_init();
 
-    xTaskCreate(blink_task, "blink task", configMINIMAL_STACK_SIZE*2, NULL, tskIDLE_PRIORITY,   NULL);
+    xTaskCreate(blink_task, "test task", configMINIMAL_STACK_SIZE*2, NULL, configMAX_PRIORITIES-2, NULL);
 
-    printf("starting scheduler from ns main\r\n");
     /* Start the scheduler itself. */
     vTaskStartScheduler();
 
@@ -106,21 +76,9 @@ int main()
 }
 
 /**
- * @brief Implements libc calloc semantics using the FreeRTOS heap
- */
-static void * prvCalloc( size_t xNmemb, size_t xSize )
-{
-    void * pvNew = pvPortMalloc( xNmemb * xSize );
-
-    if( NULL != pvNew )
-    {
-        memset( pvNew, 0, xNmemb * xSize );
-    }
-
-    return pvNew;
-}
-
+ * @brief   Defines the Ethos-U interrupt handler: just a wrapper around the default
+ *          implementation.
+ **/
 void arm_npu_irq_handler(void)
 {
-    // Do nothing.
 }

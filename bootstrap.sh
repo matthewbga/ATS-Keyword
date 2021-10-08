@@ -24,30 +24,7 @@ CLEAN=0
 
 function sync_submodules {
     echo "Syncronising submodules" >&2
-    git submodule init 2>&1 | grep -v 'registered'
-    git submodule sync --recursive -q 2>&1 | grep -vE 'Skipping|Syncronising'
-    git submodule update --recursive -q 2>&1 | grep -vE 'Skipping|Syncronising'
-
-    # ( cd "lib/tf-m"                         && git fetch "https://gerrit.oss.arm.com/iot-sw/tf-m/internal/tf-m" refs/changes/47/203047/4 && git checkout FETCH_HEAD )
-    ( cd "lib/amazon_freertos"              && git checkout 75d3feed1f498bda17b507ec66154e0d6621924e                                                     )
-    ( cd "lib/mbedcrypto"                   && git checkout mbedtls-3.0.0                                                                                )
-    ( cd "lib/mcuboot"                      && git checkout 4f80913                                                                                      )
-    ( cd "lib/tfm_test"                     && git checkout e1a8c9f                                                                                      )
-    ( cd "lib/VHT"                          && git checkout 01b55c0d72a88e4cdb5f5cfab835f6f4d1443d6f                                                     )
-    ( cd "lib/ml-embedded-evaluation-kit"   && git checkout 69a4745c5178b0a1126a98bf077e2fd65241e1c6                                                     )    
-
-    local tmp="$(mktemp)"
-    find . -name '.git' >"$tmp"
-    while read dir; do
-        echo " * Syncronising submodule $dir" >&2
-        pushd "$(dirname "$dir")" >/dev/null
-        git submodule init 2>&1 | grep -v 'registered'
-        git submodule sync --recursive -q 2>&1 | grep -vE 'Skipping|Syncronising'
-        git submodule update --recursive -q 2>&1 | grep -vE 'Skipping|Syncronising'
-        popd >/dev/null
-    done <"$tmp"
-
-    rm -f "$tmp"
+    git submodule update --init --recursive --depth 10 --jobs 4 --progress
 }
 
 function setup_ml_eval_kit {
@@ -102,7 +79,7 @@ function setup_ml_eval_kit {
 function apply_patches {
     local record="$HERE/patches/.patches-applied"
     touch "$record"
-    for patch in $HERE/patches/*.patch; do
+    while read patch; do
         local name="$(basename "$patch")"
         if grep "$name" "$record" >/dev/null; then
             echo " * Skipping $name" >&2
@@ -111,7 +88,7 @@ function apply_patches {
             patch -p1 -fi "$patch"
             echo "$name" >>"$record"
         fi
-    done
+    done < <(find patches -iname '*.patch' | sort -n)
 }
 
 sync_submodules

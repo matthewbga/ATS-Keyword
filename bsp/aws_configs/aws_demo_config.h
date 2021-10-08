@@ -49,6 +49,4 @@
 /* Send AWS IoT MQTT traffic encrypted to destination port 443. */
 #define democonfigMQTT_AGENT_CONNECT_FLAGS                ( mqttagentREQUIRE_TLS )
 
-#define CONFIG_CORE_MQTT_MUTUAL_AUTH_DEMO_ENABLED 1
-/* TODO: enable when OTA works (and remove line above) */
-//#define CONFIG_OTA_MQTT_UPDATE_DEMO_ENABLED 1
+#define CONFIG_OTA_MQTT_UPDATE_DEMO_ENABLED 1

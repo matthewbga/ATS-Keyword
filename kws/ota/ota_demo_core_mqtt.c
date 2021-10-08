@@ -89,7 +89,18 @@
 /* Includes the OTA Application version number. */
 #include "ota_appversion32.h"
 
+#include "ml_interface.h"
+#include "semphr.h"
+
 /*------------- Demo configurations -------------------------*/
+
+/**
+ * @brief The topic to subscribe and publish to in the example.
+ *
+ * The topic name starts with the client identifier to ensure that each demo
+ * interacts with a unique topic name.
+ */
+#define mqttexampleTOPIC democonfigCLIENT_IDENTIFIER "/ml/inference"
 
 /** Note: The device client certificate and private key credentials are
  * obtained by the transport interface implementation (with Secure Sockets)
@@ -782,6 +793,67 @@ static void prvMqttDataCallback( void * pContext,
 static void prvMqttDefaultCallback( void * pvIncomingPublishCallbackContext,
                                     MQTTPublishInfo_t * pxPublishInfo );
 
+static SemaphoreHandle_t mqtt_mutex = NULL;
+
+static bool mqtt_lock()
+{
+    bool success = false;
+    if ( mqtt_mutex )
+    {
+        if (xSemaphoreTake( mqtt_mutex, portMAX_DELAY ) == pdTRUE )
+        {
+            success = true;
+        }
+        else
+        {
+            LogError( ( "Failed to acquire mqtt_mutex" ) );
+        }
+    }
+    return success;
+}
+
+static bool mqtt_unlock()
+{
+    bool success = false;
+    if ( mqtt_mutex )
+    {
+        if (xSemaphoreGive( mqtt_mutex ) == pdTRUE )
+        {
+            success = true;
+        }
+        else
+        {
+            LogError( ( "Failed to release mqtt_mutex" ) );
+        }
+    }
+    return success;
+}
+
+void mqtt_send_inference_result(ml_processing_state_t state)
+{
+    if ( !mqtt_lock() ) {
+        return;
+    }
+
+    const char* message = get_inference_result_string(state);
+
+    LogInfo( ( "Publish to the MQTT topic %s.", mqttexampleTOPIC ) );
+    OtaMqttStatus_t ret = prvMqttPublish(
+        mqttexampleTOPIC,
+        strlen( mqttexampleTOPIC ),
+        message,
+        strlen( message ),
+        MQTTQoS1
+    );
+
+    if( ret )
+    {
+        LogInfo( ( "Failed to publish result over MQTT") );
+    }
+
+    mqtt_unlock();
+}
+
 /*-----------------------------------------------------------*/
 
 /**
@@ -931,6 +1003,29 @@ static void prvOtaAppCallback( OtaJobEvent_t xEvent,
 
         default:
             LogDebug( ( "Received invalid callback event from OTA Agent." ) );
+    }
+
+    OtaState_t state = OTA_GetState();
+    switch(state) {
+        case OtaAgentStateNoTransition:
+        case OtaAgentStateInit:
+        case OtaAgentStateReady:
+        case OtaAgentStateSuspended:
+        case OtaAgentStateShuttingDown:
+        case OtaAgentStateStopped:
+        case OtaAgentStateWaitingForJob:
+            ml_task_inference_start();
+            break;
+
+        case OtaAgentStateRequestingJob:
+        case OtaAgentStateCreatingFile:
+        case OtaAgentStateRequestingFileBlock:
+        case OtaAgentStateWaitingForFileBlock:
+        case OtaAgentStateClosingFile:
+            ml_task_inference_stop();
+            break;
+        default:
+            break;
     }
 }
 /*-----------------------------------------------------------*/
@@ -1838,6 +1933,7 @@ static BaseType_t prvRunOTADemo( void )
     {
         while( ( xOtaState = OTA_GetState() ) != OtaAgentStateStopped )
         {
+#if OTA_STATISTICS_ENABLED
             /* Get OTA statistics for currently executing job. */
             if( xOtaState != OtaAgentStateSuspended )
             {
@@ -1849,7 +1945,7 @@ static BaseType_t prvRunOTADemo( void )
                            xOtaStatistics.otaPacketsProcessed,
                            xOtaStatistics.otaPacketsDropped ) );
             }
-
+#endif /* OTA_STATISTICS_ENABLED */
             vTaskDelay( pdMS_TO_TICKS( otaexampleEXAMPLE_TASK_DELAY_MS ) );
         }
     }
@@ -1913,6 +2009,13 @@ int RunOtaCoreMqttDemo( bool xAwsIotMqttMode,
         xDemoStatus = pdPASS;
     }
 
+    mqtt_mutex = xSemaphoreCreateMutex();
+    if (!mqtt_lock())
+    {
+        LogError( ( "Failed get mqtt lock, demo cannot start" ) );
+        xDemoStatus = pdFAIL;
+    }
+
     /****************************** Init MQTT ******************************/
 
     if( xDemoStatus == pdPASS )
@@ -1949,6 +2052,8 @@ int RunOtaCoreMqttDemo( bool xAwsIotMqttMode,
             LogError( ( "Failed to create MQTT agent task:" ) );
         }
     }
+
+    mqtt_unlock();
 
     if( xDemoStatus == pdPASS )
     {

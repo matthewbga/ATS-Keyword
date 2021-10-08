@@ -17,10 +17,21 @@
 
 set -e
 
+case "$1" in
+    kws)    ;;
+    blinky) ;;
+    *)
+        echo "Usage: $0 <blinky|kws>" >&2
+        exit 1
+        ;;
+esac
+
+EXAMPLE=$1
+
 # create binary files of secure and non secure build outputs
 echo "Extracting binaries from axf files."
 fromelf --bin --output="build/secure_partition/tfm_s_unsigned.bin" "build/secure_partition/tfm_s.axf" --bincombined
-fromelf --bin --output="build/kws/tfm_ns_unsigned.bin" "build/kws/tfm_ns.axf" --bincombined
+fromelf --bin --output="build/$EXAMPLE/tfm_ns_unsigned.bin" "build/$EXAMPLE/tfm_ns.axf" --bincombined
 
 # sign with parameters extracted of tfm cmake build
 echo "Signing secure binary."
@@ -48,8 +59,8 @@ python3 ./lib/tf-m/bl2/ext/mcuboot/scripts/wrapper/wrapper.py \
         --pad-header \
         -H 0x400 \
         -s auto \
-        "build/kws/tfm_ns_unsigned.bin" \
-        "build/kws/tfm_ns_signed.bin"
+        "build/$EXAMPLE/tfm_ns_unsigned.bin" \
+        "build/$EXAMPLE/tfm_ns_signed.bin"
 
 echo "Signed binaries ready to be run in FVP."
 echo ""

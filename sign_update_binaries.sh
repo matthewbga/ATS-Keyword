@@ -19,25 +19,11 @@ set -e
 
 # create binary files of secure and non secure build outputs
 echo "Extracting binaries from axf files."
-fromelf --bin --output="build/secure_partition/tfm_s_unsigned.bin" "build/secure_partition/tfm_s.axf" --bincombined
 fromelf --bin --output="build/kws/tfm_ns_unsigned.bin" "build/kws/tfm_ns.axf" --bincombined
 
 # sign with parameters extracted of tfm cmake build
-echo "Signing secure binary."
-python3 ./lib/tf-m/bl2/ext/mcuboot/scripts/wrapper/wrapper.py \
-        -v 1.3.0 \
-        --layout $(readlink -f "bsp/signing_layout_s_update.c") \
-        -k ./lib/tf-m/bl2/ext/mcuboot/root-RSA-2048.pem \
-        --public-key-format full \
-        --align 1 \
-        --pad \
-        --pad-header \
-        -H 0x400 \
-        -s auto \
-        "build/secure_partition/tfm_s_unsigned.bin" \
-        "build/secure_partition/tfm_s_signed_update.bin"
 
-echo "Signing non-secure binary."
+echo "Signing update for non-secure binary."
 python3 ./lib/tf-m/bl2/ext/mcuboot/scripts/wrapper/wrapper.py \
         -v 1.4.0 \
         --layout $(readlink -f "bsp/signing_layout_ns_update.c") \
@@ -51,6 +37,9 @@ python3 ./lib/tf-m/bl2/ext/mcuboot/scripts/wrapper/wrapper.py \
         "build/kws/tfm_ns_unsigned.bin" \
         "build/kws/tfm_ns_signed_update.bin"
 
-echo "Signed binaries ready to be run in FVP."
+openssl dgst -sha256 -binary -out build/kws/update-digest.bin build/kws/tfm_ns_signed_update.bin
+openssl pkeyutl -sign -pkeyopt digest:sha256 -pkeyopt rsa_padding_mode:pss -pkeyopt rsa_mgf1_md:sha256 -inkey lib/tf-m/bl2/ext/mcuboot/root-RSA-2048_1.pem -in build/kws/update-digest.bin -out build/kws/update-signature.bin
+openssl base64 -A -in build/kws/update-signature.bin -out build/kws/update-signature.txt
+echo "Use this base 64 encoded signature in OTA job:"
+cat build/kws/update-signature.txt
 echo ""
-echo "Use the ./run.sh script to run the FVP."

@@ -1,0 +1,26 @@
+From dc80e63b23d70c4e3ce02b2d4d0e097d8268e548 Mon Sep 17 00:00:00 2001
+From: Mark Horvath <mark.horvath@arm.com>
+Date: Fri, 25 Jun 2021 16:41:02 +0200
+Subject: [PATCH 2/5] [WIP] Startup AN547 NS side in priveleged mode
+
+Signed-off-by: Mark Horvath <mark.horvath@arm.com>
+Change-Id: I3b35ae3eb3af5d32460e9083b2860a4e6951aa65
+---
+ .../ext/target/arm/mps3/an547/device/source/startup_an547_ns.c   | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/lib/tf-m/platform/ext/target/arm/mps3/an547/device/source/startup_an547_ns.c b/lib/tf-m/platform/ext/target/arm/mps3/an547/device/source/startup_an547_ns.c
+index 4118c538..66d6ce14 100644
+--- a/lib/tf-m/platform/ext/target/arm/mps3/an547/device/source/startup_an547_ns.c
++++ b/lib/tf-m/platform/ext/target/arm/mps3/an547/device/source/startup_an547_ns.c
+@@ -349,7 +349,6 @@ void Reset_Handler(void)
+ 
+   SystemInit();                             /* CMSIS System Initialization */
+   __ASM volatile("MRS     R0, control\n"    /* Get control value */
+-                 "ORR     R0, R0, #1\n"     /* Select switch to unprivilage mode */
+                  "ORR     R0, R0, #2\n"     /* Select switch to PSP */
+                  "MSR     control, R0\n"    /* Load control register */
+                  :
+-- 
+2.25.1
+

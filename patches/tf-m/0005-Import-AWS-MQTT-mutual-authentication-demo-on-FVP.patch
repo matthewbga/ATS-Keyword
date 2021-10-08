@@ -1,0 +1,26 @@
+From 1599ea9d37081b0e345de5b18e479c0b83e8d042 Mon Sep 17 00:00:00 2001
+From: Marton Berke <marton.berke@arm.com>
+Date: Wed, 18 Aug 2021 18:41:57 +0200
+Subject: [PATCH 5/5] Import AWS MQTT mutual authentication demo on FVP
+
+Build AWS MQTT test app with FVP ethernet driver
+
+Signed-off-by: Marton Berke <marton.berke@arm.com>
+Change-Id: I4439c040e5148446084b88c7204a7baf872eb718
+---
+ .../mps3/an547/device/include/platform_regs.h |   2 +-
+ 1 files changed, 1 insertions(+), 1 deletion(-)
+
+diff --git a/lib/tf-m/platform/ext/target/arm/mps3/an547/device/include/platform_regs.h b/lib/tf-m/platform/ext/target/arm/mps3/an547/device/include/platform_regs.h
+index cc24ec6f..3391a14b 100644
+--- a/lib/tf-m/platform/ext/target/arm/mps3/an547/device/include/platform_regs.h
++++ b/lib/tf-m/platform/ext/target/arm/mps3/an547/device/include/platform_regs.h
+@@ -257,7 +257,7 @@ struct sse300_nsacfg_t {
+ #define USER_AHB0_MAIN_PPCEXP0_POS_MASK         (1UL << 5)
+ #define USER_AHB1_MAIN_PPCEXP0_POS_MASK         (1UL << 6)
+ #define USER_AHB2_MAIN_PPCEXP0_POS_MASK         (1UL << 7)
+-#define USB_AND_ETHERNET_MAIN_PPCEXP0_POS_MASK  (1UL << 8)
++#define USB_AND_ETHERNET_MAIN_PPCEXP0_POS_MASK  (1UL << 4)
+ /* End MAIN PPCEXP0 peripherals definition */
+ 
+ /* MAIN PPCEXP1 peripherals definition */
