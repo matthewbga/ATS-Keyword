@@ -1,0 +1,21 @@
+[submodule "source/lib/amazon_freertos"]
+	path = lib/amazon_freertos
+	url = https://github.com/aws/amazon-freertos.git
+[submodule "source/lib/mbedcrypto"]
+	path = lib/mbedcrypto
+	url = https://github.com/ARMmbed/mbedtls.git
+[submodule "source/lib/mcuboot"]
+	path = lib/mcuboot
+	url = https://github.com/mcu-tools/mcuboot.git
+[submodule "source/lib/tf-m"]
+	path = lib/tf-m
+	url = https://git.trustedfirmware.org/TF-M/trusted-firmware-m.git
+[submodule "source/lib/tfm_test"]
+	path = lib/tfm_test
+	url = https://git.trustedfirmware.org/TF-M/tf-m-tests.git
+[submodule "source/lib/VHT"]
+	path = lib/VHT
+	url = https://github.com/ARM-software/VHT
+[submodule "source/lib/ml-embedded-evaluation-kit"]
+	path = lib/ml-embedded-evaluation-kit
+	url = https://review.mlplatform.org/ml/ethos-u/ml-embedded-evaluation-kit

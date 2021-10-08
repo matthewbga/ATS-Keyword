@@ -1,0 +1,20 @@
+diff --git a/lib/VHT/interface/audio/driver/audio_drv.c b/lib/VHT/audio/arm_vsi/audio_in/audio_drv.c
+--- a/lib/VHT/interface/audio/driver/audio_drv.c
++++ b/lib/VHT/interface/audio/driver/audio_drv.c
+@@ -8,13 +8,13 @@
+ #ifdef _RTE_
+ #include "RTE_Components.h"
+ #endif
+-#include CMSIS_device_header
++#include "platform/ext/target/arm/mps3/an547/device/include/cmsis.h"
+ 
+ /* Audio Peripheral definitions */
+-#define AudioO          ARM_VSI1                /* Audio Output access struct */
++#define AudioO          ARM_VSI1_NS             /* Audio Output access struct */
+ #define AudioO_IRQn     ARM_VSI1_IRQn           /* Audio Output Interrupt number */
+ #define AudioO_Handler  ARM_VSI1_Handler        /* Audio Output Interrupt handler */
+-#define AudioI          ARM_VSI0                /* Audio Input access struct */
++#define AudioI          ARM_VSI0_NS             /* Audio Input access struct */
+ #define AudioI_IRQn     ARM_VSI0_IRQn           /* Audio Input Interrupt number */
+ #define AudioI_Handler  ARM_VSI0_Handler        /* Audio Input Interrupt handler */
+

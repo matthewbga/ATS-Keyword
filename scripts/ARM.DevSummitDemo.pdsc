@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ Copyright (c) 2020-2021 ARM Limited
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ -->
+<package schemaVersion="1.6.3" xmlns:xs="http://www.w3.org/2001/XMLSchema-instance" xs:noNamespaceSchemaLocation="PACK.xsd">
+  <name>DevSummitDemo</name>
+  <description>Collection of projects used to demonestrate TFM, ML and OTA on Corstone 300</description>
+  <vendor>ARM</vendor>
+  <url>http://www.keil.com/pack/</url>
+
+  <releases>
+    <release version="1.0.0" date="2021-07-30">
+      First release containing Blinky demo using TFM running on FVP.
+    </release>
+  </releases>
+
+  <keywords>
+    <keyword>ARM</keyword>
+    <keyword>TFM</keyword>
+    <keyword>SSE-300</keyword>
+  </keywords>
+
+  <repository type="git">
+    https://git.gitlab.oss.arm.com/engineering/iot-m-sw/devsummit2021-team/devsummitdemo-2021.git
+  </repository>
+
+  <requirements>
+    <compilers>
+      <compiler name="ARMCC" version="6.0.0:6.99.99"/>
+    </compilers>
+    <languages>
+      <language name="C" version="99"/>
+    </languages>
+  </requirements>
+
+  <examples>
+    <example name="tfm-blinky-secure" doc="README.md" folder="examples/tfm-blinky">
+      <description>Blinky example for SSE300 FVP.</description>
+      <board name="V2M-MPS3-SSE-300-FVP" vendor="ARM"/>
+        <project>
+          <environment name="uv" load="tfm.blinky.uvmpw"/>
+        </project>
+    </example>
+    <example name="tfm-ml" doc="README.md" folder="examples/tfm-ml">
+      <description>ML example for SSE300 FVP.</description>
+      <board name="V2M-MPS3-SSE-300-FVP" vendor="ARM"/>
+        <project>
+          <environment name="uv" load="tfm.ml.uvmpw"/>
+        </project>
+    </example>
+  </examples>
+</package>

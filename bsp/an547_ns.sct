@@ -1,0 +1,49 @@
+LR_CODE (0x28000000 + ((((0) + (0x60000)) + (0x400)))) {
+    ER_CODE (0x28000000 + ((((0) + (0x60000)) + (0x400)))) { ;(((0x200000) - (0x400) - (0x800))) {
+        *.o (RESET +First)
+        * (InRoot$$Sections)
+        * (+RO)
+    }
+    
+    ER_DATA 0x28700000 {
+        * (+ZI +RW)
+    }
+    
+    ARM_LIB_STACK_MSP +0 ALIGN 32 EMPTY (0x0000800) {
+    }
+    ARM_LIB_STACK +0 ALIGN 32 EMPTY (0x0002000) {
+    }
+    ARM_LIB_HEAP +0 ALIGN 8 EMPTY (0x0008000) {
+    }
+    
+    ;-----------------------------------------------------
+    ; SSE-300's internal SRAM of 4MiB - reserved for
+    ; activation buffers.
+    ; This region should have 3 cycle read latency from
+    ; both Cortex-M55 and Ethos-U55
+    ;-----------------------------------------------------
+    ddr.bin       0x60000000  NOCOMPRESS ALIGN 16 0x02000000
+    {
+        ; nn model's baked in input matrices
+        *.o (ifm)
+
+        ; nn model
+        *.o (nn_model)
+
+        ; labels
+        *.o (labels)
+
+        ; if the activation buffer (tensor arena) doesn't
+        ; fit in the SRAM region, we accommodate it here
+        *.o (activation_buf)
+        
+        ; activation buffers a.k.a tensor arena
+        *.o (.bss.NoInit.activation_buf)
+    }
+
+    dma 0x8FFF0000 UNINIT ALIGN 16 0xFFFF
+    {
+        ; Buffer for transferring VSI audio data from S to NS.
+        *.o (.bss.NoInit.audio_buf)
+    }
+}

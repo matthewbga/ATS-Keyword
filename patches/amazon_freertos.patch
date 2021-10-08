@@ -1,0 +1,19 @@
+diff --git a/lib/amazon_freertos/libraries/abstractions/secure_sockets/freertos_plus_tcp/iot_secure_sockets.c b/lib/amazon_freertos/libraries/abstractions/secure_sockets/freertos_plus_tcp/iot_secure_sockets.c
+index 62507a254..8fe4312d4 100644
+--- a/lib/amazon_freertos/libraries/abstractions/secure_sockets/freertos_plus_tcp/iot_secure_sockets.c
++++ b/lib/amazon_freertos/libraries/abstractions/secure_sockets/freertos_plus_tcp/iot_secure_sockets.c
+@@ -483,6 +483,14 @@ int32_t SOCKETS_Shutdown( Socket_t xSocket,
+         lReturn = SOCKETS_EINVAL;
+     }
+ 
++    if (lReturn == -pdFREERTOS_ERRNO_EOPNOTSUPP) {
++        /* Overriding the code since shutdown sometimes happens after disconnection
++         * when the socket is no longer established which returns -pdFREERTOS_ERRNO_EOPNOTSUPP.
++         * This is benign and the real test for shutting down is done through recv() return code
++         * so application behaviour doesn't change */
++        return SOCKETS_ERROR_NONE;
++    }
++
+     return lReturn;
+ }
+ /*-----------------------------------------------------------*/

@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<cprj schemaVersion="0.0.9" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="CPRJ.xsd">
+
+  <created timestamp="2021-07-26T11:35:48" tool="uVision V5.35.0.0"/>
+
+  <info>
+    <name>bootloader</name>
+    <description>Bootloader for combined secure and non-secure image</description>
+  </info>
+
+  <packages>
+    <package name="CMSIS" vendor="ARM"/>
+  </packages>
+
+  <compilers>
+    <compiler name="AC6" version="6.0.0:6.99.99"/>
+  </compilers>
+
+  <target Ddsp="NO_DSP" Dendian="Little-endian" Dfpu="NO_FPU" Dmve="NO_MVE" Dname="ARMCM55" Dsecure="Non-secure" Dtz="TZ" Dvendor="ARM:82">
+    <output intdir="./build/bootloader/" name="bl2" outdir="./build/bootloader/" type="exe"/>
+    <ldflags add="--cpu=8.1-M.Main --info=summarysizes,sizes,totals,unused,veneers --strict --symbols --xref --diag_suppress=6312 --diag_suppress=6314 --diag_suppress=6304 --diag_suppress=6329 --fpu=softvfp --map" compiler="AC6" file="./bsp/an547_bl2.sct"/>
+    <cflags add="--target=arm-arm-none-eabi -mcpu=cortex-m55+nofp+nodsp+nomve -mfloat-abi=soft -I./lib/tf-m" compiler="AC6"/>
+    <asflags compiler="AC6" use="armasm"/>
+    <includes/>
+  </target>
+  
+  <files>    
+    <group name="platform_an547_bl2">
+      <cflags add="-DBL2 -DTFM_SYSTEM_ARCHITECTURE=armv8.1-m.main -DTFM_SYSTEM_MVE=OFF -DTFM_SYSTEM_PROCESSOR=cortex-m55 -DDAUTH_CHIP_DEFAULT -DMCUBOOT_DIRECT_XIP_REVERT -DMCUBOOT_FIH_PROFILE_OFF -DMCUBOOT_HW_KEY -DMCUBOOT_IMAGE_NUMBER=2 -DMCUBOOT_OVERWRITE_ONLY -DMCUBOOT_SIGN_RSA -DMCUBOOT_SIGN_RSA_LEN=2048 -DTFM_LVL=1 -DTFM_PARTITION_AUDIT_LOG -DTFM_PARTITION_CRYPTO -DTFM_PARTITION_INITIAL_ATTESTATION -DTFM_PARTITION_INTERNAL_TRUSTED_STORAGE -DTFM_PARTITION_LOG_LEVEL=TFM_PARTITION_LOG_LEVEL_DEBUG -DTFM_PARTITION_PLATFORM -DTFM_PARTITION_PROTECTED_STORAGE -I./ -I./lib/mcuboot/ext/mbedtls/tests/include/spe -I./bsp -I./lib/tf-m/platform/ext/target/arm/mps3/an547/cmsis_drivers -I./lib/tf-m/platform/ext/target/arm/mps3/an547/cmsis_drivers/config -I./lib/tf-m/platform/ext/target/arm/mps3/an547/device -I./lib/tf-m/platform/ext/target/arm/mps3/an547/device/config -I./lib/tf-m/platform/ext/target/arm/mps3/an547/device/include -I./lib/tf-m/platform/ext/target/arm/mps3/an547/device/source/armclang -I./lib/tf-m/platform/ext/target/arm/mps3/an547/native_drivers -I./lib/tf-m/platform/ext/target/arm/mps3/an547/partition -I./lib/tf-m/platform/ext/target/arm/mps3/an547/services/src -I./lib/tf-m/platform/ext/target/arm/mps3/an547/. -I./lib/tf-m/platform/.. -I./lib/tf-m/platform/include -I./lib/tf-m/platform/ext/cmsis -I./lib/tf-m/platform/ext/driver -I./lib/tf-m/platform/ext/common -I./lib/tf-m/platform/ext -I./lib/tf-m/interface/include -I./bsp/interface/include -I./lib/tf-m/bl2/include -I./lib/tf-m/secure_fw/spm/cmsis_psa/arch -march=armv8.1-m.main -Wno-ignored-optimization-argument -Wno-unused-command-line-argument -Wall -Wno-error=cpp -c -fdata-sections -ffunction-sections -fno-builtin -fshort-enums -fshort-wchar -funsigned-char -masm=auto -nostdlib -std=c99 -mfpu=none" compiler="AC6"/>
+      <file category="sourceC" name="./lib/tf-m/platform/ext/target/arm/mps3/an547/cmsis_drivers/Driver_Flash.c"/>
+      <file category="sourceC" name="./lib/tf-m/platform/ext/target/arm/mps3/an547/cmsis_drivers/Driver_USART.c"/>
+      <file category="sourceC" name="./lib/tf-m/platform/ext/target/arm/mps3/an547/device/source/device_definition.c"/>
+      <file category="sourceC" name="./lib/tf-m/platform/ext/target/arm/mps3/an547/device/source/system_core_init.c"/>
+      <file category="sourceC" name="./lib/tf-m/platform/ext/target/arm/mps3/an547/native_drivers/uart_cmsdk_drv.c"/>
+      <file category="sourceC" name="./lib/tf-m/platform/ext/target/arm/mps3/an547/boot_hal.c"/>
+    </group>
+    
+    <group name="platform_bl2">
+      <cflags add="-DBL2 -DTFM_SYSTEM_ARCHITECTURE=armv8.1-m.main -DTFM_SYSTEM_MVE=OFF -DTFM_SYSTEM_PROCESSOR=cortex-m55 -DDAUTH_CHIP_DEFAULT -DMCUBOOT_DIRECT_XIP_REVERT -DMCUBOOT_FIH_PROFILE_OFF -DMCUBOOT_HW_KEY -DMCUBOOT_IMAGE_NUMBER=2 -DMCUBOOT_OVERWRITE_ONLY -DMCUBOOT_SIGN_RSA -DMCUBOOT_SIGN_RSA_LEN=2048 -DTFM_LVL=1 -DTFM_PARTITION_AUDIT_LOG -DTFM_PARTITION_CRYPTO -DTFM_PARTITION_INITIAL_ATTESTATION -DTFM_PARTITION_INTERNAL_TRUSTED_STORAGE -DTFM_PARTITION_LOG_LEVEL=TFM_PARTITION_LOG_LEVEL_DEBUG -DTFM_PARTITION_PLATFORM -DTFM_PARTITION_PROTECTED_STORAGE -I./ -I./lib/mcuboot/ext/mbedtls/tests/include/spe -I./bsp -I./lib/tf-m/platform/ext/target/arm/mps3/an547/cmsis_drivers -I./lib/tf-m/platform/ext/target/arm/mps3/an547/cmsis_drivers/config -I./lib/tf-m/platform/ext/target/arm/mps3/an547/device -I./lib/tf-m/platform/ext/target/arm/mps3/an547/device/config -I./lib/tf-m/platform/ext/target/arm/mps3/an547/device/include -I./lib/tf-m/platform/ext/target/arm/mps3/an547/device/source/armclang -I./lib/tf-m/platform/ext/target/arm/mps3/an547/native_drivers -I./lib/tf-m/platform/ext/target/arm/mps3/an547/partition -I./lib/tf-m/platform/ext/target/arm/mps3/an547/services/src -I./lib/tf-m/platform/ext/target/arm/mps3/an547/. -I./lib/tf-m/platform/.. -I./lib/tf-m/platform/include -I./lib/tf-m/platform/ext/cmsis -I./lib/tf-m/platform/ext/driver -I./lib/tf-m/platform/ext/common -I./lib/tf-m/platform/ext -I./lib/tf-m/interface/include -I./bsp/interface/include -I./lib/tf-m/bl2/include -I./lib/tf-m/secure_fw/spm/cmsis_psa/arch -march=armv8.1-m.main -Wno-ignored-optimization-argument -Wno-unused-command-line-argument -Wall -Wno-error=cpp -c -fdata-sections -ffunction-sections -fno-builtin -fshort-enums -fshort-wchar -funsigned-char -masm=auto -nostdlib -std=c99 -mfpu=none" compiler="AC6"/>    
+      <file category="sourceC" name="./lib/tf-m/platform/ext/common/boot_hal.c"/>
+      <file category="sourceC" name="./lib/tf-m/platform/ext/common/uart_stdout.c"/>
+      <file category="sourceC" name="./lib/tf-m/platform/ext/common/template/nv_counters.c"/>
+      <file category="sourceC" name="./lib/tf-m/platform/ext/common/template/tfm_rotpk.c"/>
+      <file category="sourceC" name="./lib/tf-m/platform/ext/common/template/tfm_initial_attestation_key_material.c"/>
+    </group>
+    
+    <group name="bl2_mbedcrypto">
+      <cflags add="-DMBEDTLS_CONFIG_FILE=2 -DMCUBOOT_SIGN_RSA -DMCUBOOT_SIGN_RSA_LEN=2048 -I./ -I./lib/mcuboot/ext/mbedtls/tests/include/spe -I./bsp -I./lib/tf-m/platform/include -I./lib/mbedcrypto/include -I./lib/mbedcrypto/library -march=armv8.1-m.main -Wall -Wextra -Wwrite-strings -Wpointer-arith -Wimplicit-fallthrough -Wshadow -Wvla -Wformat=2 -Wno-format-nonliteral -Wmissing-declarations -Wmissing-prototypes -Wdocumentation -Wno-documentation-deprecated-sync -Wunreachable-code -O2 -DNDEBUG -Wno-ignored-optimization-argument -Wno-unused-command-line-argument -Wall -Wno-error=cpp -c -fdata-sections -ffunction-sections -fno-builtin -fshort-enums -fshort-wchar -funsigned-char -masm=auto -nostdlib -std=c99 -mfpu=none" compiler="AC6"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/aes.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/aesni.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/aria.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/asn1parse.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/asn1write.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/base64.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/bignum.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/camellia.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/ccm.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/chacha20.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/chachapoly.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/cipher.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/cipher_wrap.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/cmac.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/ctr_drbg.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/des.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/dhm.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/ecdh.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/ecdsa.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/ecjpake.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/ecp.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/ecp_curves.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/entropy.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/entropy_poll.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/error.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/gcm.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/hkdf.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/hmac_drbg.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/md.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/md5.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/memory_buffer_alloc.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/mps_reader.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/mps_trace.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/nist_kw.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/oid.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/padlock.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/pem.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/pk.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/pk_wrap.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/pkcs12.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/pkcs5.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/pkparse.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/pkwrite.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/platform.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/platform_util.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/poly1305.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/psa_crypto.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/psa_crypto_aead.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/psa_crypto_cipher.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/psa_crypto_client.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/psa_crypto_driver_wrappers.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/psa_crypto_ecp.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/psa_crypto_hash.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/psa_crypto_mac.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/psa_crypto_rsa.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/psa_crypto_se.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/psa_crypto_slot_management.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/psa_crypto_storage.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/psa_its_file.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/ripemd160.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/rsa.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/rsa_alt_helpers.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/sha1.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/sha256.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/sha512.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/threading.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/timing.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/version.c"/>
+      <file category="sourceC" name="./lib/mbedcrypto/library/version_features.c"/>
+    </group>
+  
+    <group name="bootutil">
+      <cflags add="-DBL2 -DTFM_SYSTEM_ARCHITECTURE=armv8.1-m.main -DTFM_SYSTEM_MVE=OFF -DTFM_SYSTEM_PROCESSOR=cortex-m55 -DDAUTH_CHIP_DEFAULT -DMBEDTLS_CONFIG_FILE=2 -DMCUBOOT_DIRECT_XIP_REVERT -DMCUBOOT_FIH_PROFILE_OFF -DMCUBOOT_HW_KEY -DMCUBOOT_IMAGE_NUMBER=2 -DMCUBOOT_OVERWRITE_ONLY -DMCUBOOT_SIGN_RSA -DMCUBOOT_SIGN_RSA_LEN=2048 -I./ -I./lib/mcuboot/ext/mbedtls/tests/include/spe -I./bsp -I./lib/mcuboot/boot/bootutil/include -I./lib/mcuboot/boot/bootutil/src -I./lib/tf-m/bl2/ext/mcuboot/include -I./lib/tf-m/bl2/ext/mcuboot/config -I./clang_test/bl2/ext/mcuboot -I./lib/tf-m/platform/ext/target/arm/mps3/an547/cmsis_drivers -I./lib/tf-m/platform/ext/target/arm/mps3/an547/cmsis_drivers/config -I./lib/tf-m/platform/ext/target/arm/mps3/an547/device -I./lib/tf-m/platform/ext/target/arm/mps3/an547/device/config -I./lib/tf-m/platform/ext/target/arm/mps3/an547/device/include -I./lib/tf-m/platform/ext/target/arm/mps3/an547/device/source/armclang -I./lib/tf-m/platform/ext/target/arm/mps3/an547/native_drivers -I./lib/tf-m/platform/ext/target/arm/mps3/an547/partition -I./lib/tf-m/platform/ext/target/arm/mps3/an547/services/src -I./lib/tf-m/platform/include -I./lib/tf-m/platform/ext/cmsis -I./lib/tf-m/platform/ext/driver -I./lib/tf-m/platform/ext/common -I./lib/tf-m/platform/ext -I./lib/mbedcrypto/include -I./lib/mbedcrypto/library -march=armv8.1-m.main -Wno-ignored-optimization-argument -Wno-unused-command-line-argument -Wall -Wno-error=cpp -c -fdata-sections -ffunction-sections -fno-builtin -fshort-enums -fshort-wchar -funsigned-char -masm=auto -nostdlib -std=c99 -mfpu=none" compiler="AC6"/>
+      <file category="sourceC" name="./lib/mcuboot/boot/bootutil/src/boot_record.c"/>
+      <file category="sourceC" name="./lib/mcuboot/boot/bootutil/src/bootutil_misc.c"/>
+      <file category="sourceC" name="./lib/mcuboot/boot/bootutil/src/bootutil_public.c"/>
+      <file category="sourceC" name="./lib/mcuboot/boot/bootutil/src/caps.c"/>
+      <file category="sourceC" name="./lib/mcuboot/boot/bootutil/src/encrypted.c"/>
+      <file category="sourceC" name="./lib/mcuboot/boot/bootutil/src/fault_injection_hardening.c"/>
+      <file category="sourceC" name="./lib/mcuboot/boot/bootutil/src/fault_injection_hardening_delay_rng_mbedtls.c"/>
+      <file category="sourceC" name="./lib/mcuboot/boot/bootutil/src/image_ec.c"/>
+      <file category="sourceC" name="./lib/mcuboot/boot/bootutil/src/image_ec256.c"/>
+      <file category="sourceC" name="./lib/mcuboot/boot/bootutil/src/image_ed25519.c"/>
+      <file category="sourceC" name="./lib/mcuboot/boot/bootutil/src/image_rsa.c"/>
+      <file category="sourceC" name="./lib/mcuboot/boot/bootutil/src/image_validate.c"/>
+      <file category="sourceC" name="./lib/mcuboot/boot/bootutil/src/loader.c"/>
+      <file category="sourceC" name="./lib/mcuboot/boot/bootutil/src/swap_misc.c"/>
+      <file category="sourceC" name="./lib/mcuboot/boot/bootutil/src/swap_move.c"/>
+      <file category="sourceC" name="./lib/mcuboot/boot/bootutil/src/swap_scratch.c"/>
+      <file category="sourceC" name="./lib/mcuboot/boot/bootutil/src/tlv.c"/>
+    </group>
+    
+    <group name="bl2">
+      <cflags add="-DBL2 -DTFM_SYSTEM_ARCHITECTURE=armv8.1-m.main -DTFM_SYSTEM_MVE=OFF -DTFM_SYSTEM_PROCESSOR=cortex-m55 -DDAUTH_CHIP_DEFAULT -DMBEDTLS_CONFIG_FILE=2 -DMCUBOOT_DIRECT_XIP_REVERT -DMCUBOOT_FIH_PROFILE_OFF -DMCUBOOT_HW_KEY -DMCUBOOT_IMAGE_NUMBER=2 -DMCUBOOT_OVERWRITE_ONLY -DMCUBOOT_SIGN_RSA -DMCUBOOT_SIGN_RSA_LEN=2048 -I./ -I./lib/mcuboot/ext/mbedtls/tests/include/spe -I./bsp -I./lib/tf-m/bl2/ext/mcuboot/include -I./lib/tf-m/bl2/include -I./lib/mcuboot/boot/bootutil/src -I./lib/mcuboot/boot/bootutil/include -I./lib/tf-m/bl2/ext/mcuboot/config -I./clang_test/bl2/ext/mcuboot -I./lib/tf-m/platform/ext/target/arm/mps3/an547/cmsis_drivers -I./lib/tf-m/platform/ext/target/arm/mps3/an547/cmsis_drivers/config -I./lib/tf-m/platform/ext/target/arm/mps3/an547/device -I./lib/tf-m/platform/ext/target/arm/mps3/an547/device/config -I./lib/tf-m/platform/ext/target/arm/mps3/an547/device/include -I./lib/tf-m/platform/ext/target/arm/mps3/an547/device/source/armclang -I./lib/tf-m/platform/ext/target/arm/mps3/an547/native_drivers -I./lib/tf-m/platform/ext/target/arm/mps3/an547/partition -I./lib/tf-m/platform/ext/target/arm/mps3/an547/services/src -I./lib/tf-m/platform/include -I./lib/tf-m/platform/ext/cmsis -I./lib/tf-m/platform/ext/driver -I./lib/tf-m/platform/ext/common -I./lib/tf-m/platform/ext -I./lib/mbedcrypto/include -I./lib/mbedcrypto/library -I./lib/tf-m/secure_fw/spm/include -march=armv8.1-m.main -Wno-ignored-optimization-argument -Wno-unused-command-line-argument -Wall -Wno-error=cpp -c -fdata-sections -ffunction-sections -fno-builtin -fshort-enums -fshort-wchar -funsigned-char -masm=auto -nostdlib -std=c99 -mfpu=none" compiler="AC6"/>
+      <file category="sourceC" name="./lib/tf-m/bl2/src/security_cnt.c"/>
+      <file category="sourceC" name="./lib/tf-m/bl2/src/flash_map.c"/>
+      <file category="sourceC" name="./lib/tf-m/bl2/ext/mcuboot/bl2_main.c"/>
+      <file category="sourceC" name="./lib/tf-m/bl2/ext/mcuboot/keys.c"/>
+      <file category="sourceC" name="./lib/tf-m/bl2/ext/mcuboot/flash_map_extended.c"/>
+      <file category="sourceC" name="./lib/tf-m/bl2/ext/mcuboot/flash_map_legacy.c"/>
+      <file category="sourceC" name="./lib/tf-m/platform/ext/target/arm/mps3/an547/device/source/startup_an547_bl2.c"/>
+    </group>
+  </files>
+
+</cprj>
