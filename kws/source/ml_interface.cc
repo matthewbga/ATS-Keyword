@@ -524,11 +524,10 @@ void ProcessAudio(ApplicationContext& ctx)
             ++audio_index;
         } /* while (true) */
 
-        if (xQueueReceive(ml_msg_queue, &msg, 0) == pdPASS ) {
-            if (msg.event == ML_EVENT_STOP) {
-                /* already stopped so restart */
-                continue;
-            } /* else it's ML_EVENT_START so we fall through to the next loop */
+        while ( xQueueReceive(ml_msg_queue, &msg, portMAX_DELAY) == pdPASS ) {
+            if (msg.event == ML_EVENT_START) {
+                break;
+            } /* else it's ML_EVENT_STOP so we keep waiting */
         }
     } /* while (true) */
 }

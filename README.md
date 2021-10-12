@@ -40,7 +40,7 @@ Follow these simple steps to use this code example's default configuration #3 ke
 # Note: The key parameter required by the script is the name of the key pair in AWS. 
 
 # Start a new instance.
-./scripts/avh_start -k <key pair> start
+./scripts/avh_cli.py -k <key pair> start
 
 # Get instances status.
 ./scripts/avh_start -k <key pair> status
@@ -77,28 +77,28 @@ Follow these simple steps to use this code example's default configuration #3 ke
 
 ```sh
 # add whitespace to this file
-> vi .github/workflows/build.yml
+> vim .github/workflows/avh.yml
  
 # git push it
-> git add .github/workflows/build.yml
+> git add .github/workflows/avh.yml
 > git commit -m "initial arm virtual hardware github runner test"
-> git push origin master
+> git push origin main
 ```
 
 5. To update the application, a set of scripts is included to setup the environment, build applications, run them and test them. These scripts must be executed in the AVH AMI. 
 
 ```sh
 # Synchronize git submodules, setup ML and apply required patches
-./script/bootstrap.sh
+./bootstrap.sh
 
 # The python environment requires extra packages to sign the binaries
 pip3 install click imgtool pytest
 
 # Build the blinky or kws application
-./script/build.sh <blinky|kws>
+./build.sh <blinky|kws>
 
 # Run the blinky or kws application
-./script/build.sh <blinky|kws>
+./run.sh <blinky|kws>
 
 # Launch integration tests
 pytest -s <blinky|kws>/tests

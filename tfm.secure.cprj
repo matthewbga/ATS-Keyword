@@ -19,7 +19,7 @@
   <target Ddsp="DSP" Dendian="Little-endian" Dfpu="DP_FPU" Dmve="FP_MVE" Dname="ARMCM55" Dsecure="Secure" Dtz="TZ" Dvendor="ARM:82">
     <output intdir="./build/secure_partition/" name="tfm_s" outdir="./build/secure_partition/" type="exe"/>
     <ldflags add="--cpu=Cortex-M55 --strict --info=summarysizes,sizes,totals,unused,veneers --strict --symbols --xref --diag_suppress=6312 --diag_suppress=6314 --diag_suppress=6304 --diag_suppress=6329 --entry=Reset_Handler --map --summary_stderr --load_addr_map_info --callgraph --import_cmse_lib_out=./build/secure_partition/s_veneers.o" compiler="AC6" file="./bsp/tfm_s.sct"/>
-    <cflags add="-g -O0" compiler="AC6"/>
+    <cflags add="-g -O2" compiler="AC6"/>
     <asflags compiler="AC6" use="armasm"/>
     <includes/>
   </target>

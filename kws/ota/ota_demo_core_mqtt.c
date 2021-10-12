@@ -1427,6 +1427,12 @@ static BaseType_t prvCreateSocketConnectionToMQTTBroker( NetworkContext_t * pxNe
         }
     } while( ( xNetworkStatus != TRANSPORT_SOCKET_STATUS_SUCCESS ) && ( xStatus == pdPASS ) );
 
+    /* if we fail to connect we can start ML immediately */
+    if ( xStatus != pdPASS )
+    {
+        ml_task_inference_start();
+    }
+    
     return xStatus;
 }
 /*-----------------------------------------------------------*/

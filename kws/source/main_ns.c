@@ -38,6 +38,7 @@
 #include "iot_network_freertos.h"
 #include "iot_logging_task.h"
 #include "aws_dev_mode_key_provisioning.h"
+#include "psa/update.h"
 
 extern int mbedtls_platform_set_calloc_free( void * (*calloc_func)( size_t, size_t ),
                                              void (*free_func)( void * ) );
@@ -85,6 +86,20 @@ static uint8_t ucDNSServerAddress[ 4 ] = { 208, 67, 222, 222 };
 
 psa_key_handle_t xOTACodeVerifyKeyHandle = NULL;
 
+void print_version()
+{
+    psa_image_info_t xImageInfo = { 0 };
+    psa_image_id_t ulImageID = FWU_CALCULATE_IMAGE_ID(FWU_IMAGE_ID_SLOT_ACTIVE, FWU_IMAGE_ID_SLOT_ACTIVE, 0);
+    psa_status_t uxStatus = psa_fwu_query( ulImageID, &xImageInfo );
+    if( uxStatus != PSA_SUCCESS )
+    {
+        print_log("Firmware version: %d.%d.%d",
+                  xImageInfo.version.iv_major,
+                  xImageInfo.version.iv_minor,
+                  xImageInfo.version.iv_revision);
+    }
+}
+
 int main()
 {
     BaseType_t ret = pdPASS;
@@ -106,6 +121,8 @@ int main()
 
     ret = ota_privision_code_signing_key(&xOTACodeVerifyKeyHandle);
     configASSERT( ret == 0 );
+
+    print_version();
 
     /* Initialise the RTOS's TCP/IP stack.  The tasks that use the network
     are created in the vApplicationIPNetworkEventHook() hook function
@@ -132,10 +149,20 @@ void vApplicationIPNetworkEventHook( eIPCallbackEvent_t eNetworkEvent )
 {
     if (eNetworkEvent == eNetworkUp) {
         print_log("[INF] network up, starting demo\r\n");
-        DEMO_RUNNER_RunDemos( );
+
+        if (strcmp(clientcredentialMQTT_BROKER_ENDPOINT, "endpointid.amazonaws.com") == 0) {
+            print_log("[ERR] INVALID CREDENTIALS AND ENDPOINT.\r\n");
+            print_log("[ERR] Set the right configuration and credentials in aws_clientcredential.h and aws_clientcredential_keys.h\r\n");
+            // Start the inference directly
+            ml_task_inference_start();
+        } else {
+            DEMO_RUNNER_RunDemos( );
+        }
     } else {
         print_log("[ERR] network down\r\n");
     }
+
+
 }
 
 
