@@ -9,7 +9,6 @@
 
   <project>
     <PathAndName>.\tfm.bootloader.uvprojx</PathAndName>
-    <NodeIsActive>1</NodeIsActive>
   </project>
 
   <project>
@@ -18,6 +17,7 @@
 
   <project>
     <PathAndName>.\tfm.kws_ns.uvprojx</PathAndName>
+    <NodeIsActive>1</NodeIsActive>
   </project>
 
 </ProjectWorkspace>

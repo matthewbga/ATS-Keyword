@@ -25,7 +25,7 @@ import logging
 import platform
 
 
-# AWS ORTA-TEST connection details
+# AWS AVH-TEST connection details
 # TODO will eventually change to public AMI
 # version 0.3.0
 ImgId="ami-030e410551d9b5fa5"
@@ -52,17 +52,17 @@ else:
     nc="\033[0m"
 
 
-def start_orta(profile, key, region, initfile):
+def start_avh(profile, key, region, initfile):
     global ImgId, InstType
 
-    if status_orta(profile, region, False)[0] > 0 :
-        print(orange + "One or more ORTA instances are already running." + nc)
+    if status_avh(profile, region, False)[0] > 0 :
+        print(orange + "One or more AVH instances are already running." + nc)
         confirm = input("Please confirm to launch a new instance [Y/n]: ")
         if confirm != "Y":
             print("Cancelling... No instance will be started.")
             sys.exit(1)
 
-    print("Starting ORTA instance...")
+    print("Starting AVH instance...")
 
     cmd = "aws ec2 run-instances --profile {} --image-id {} --instance-type {} --key-name {} --region {}".format(
             profile, ImgId, InstType, key, region)
@@ -83,7 +83,7 @@ def start_orta(profile, key, region, initfile):
 
     return
 
-def status_orta(profile, region, printv):
+def status_avh(profile, region, printv):
     global ImgId
 
     n_instances = 0
@@ -123,11 +123,11 @@ def status_orta(profile, region, printv):
     return n_instances, arr_inst
 
 
-def stop_orta(profile, region):
-    [n, arr] = status_orta(profile, region, False)
+def stop_avh(profile, region):
+    [n, arr] = status_avh(profile, region, False)
 
     if n == 0 :
-        logging.error(red + "No ORTA instance is running." + nc)
+        logging.error(red + "No AVH instance is running." + nc)
         sys.exit(1)
     else:
         if n > 1:
@@ -142,7 +142,7 @@ def stop_orta(profile, region):
         if(instanceid == ""):
             print("Cancelling... No instance will be stopped.")
         else:
-            print(orange + "Stopping ORTA instance ID {}...".format(instanceid) + nc)
+            print(orange + "Stopping AVH instance ID {}...".format(instanceid) + nc)
 
             cmd = "aws ec2 terminate-instances --profile {} --instance-ids {} --region {}".format(
                     profile, instanceid, region)
@@ -158,7 +158,7 @@ def stop_orta(profile, region):
 
 # Command options
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="ORTA command-line interface for AWS. Starts (launches) a single ORTA AMI instance and stops (terminates) it.")
+    parser = argparse.ArgumentParser(description="AVH command-line interface for AWS. Starts (launches) a single AVH AMI instance and stops (terminates) it.")
     parser.add_argument("-p", dest="profile", metavar="NAME", action="store", type=str, help=("Name of the profile configuration (default is 'default')"), default="default")
     parser.add_argument("-k", dest="key", metavar="KEY", action="store", type=str, help=("Name of the AWS key. If not specified, a key will be created"))
     parser.add_argument("-r", dest="region", metavar="REGION", action="store", type=str, help=("Name of the AWS region (default is 'us-east-1')"), default="us-east-1")
@@ -195,11 +195,11 @@ if __name__ == "__main__":
     if args.command.lower() == "start" :
         # Key check
         if args.key == None:
-            args.key = "orta_user"
-            if os.path.isfile(os.path.join(os.path.expanduser('~'),'.ssh/orta_user.pem')) == False :
-                logging.info(red + "No key specified and orta_user key not found, creating 'orta_user' key..." + nc)
+            args.key = "avh_user"
+            if os.path.isfile(os.path.join(os.path.expanduser('~'),'.ssh/avh_user.pem')) == False :
+                logging.info(red + "No key specified and avh_user key not found, creating 'avh_user' key..." + nc)
 
-                cmd = "aws ec2 create-key-pair --key-name orta_user --profile {} --region {}".format(
+                cmd = "aws ec2 create-key-pair --key-name avh_user --profile {} --region {}".format(
                             args.profile, args.region)
                 try:
                     out = subprocess.check_output(cmd, shell=True).decode("utf-8")
@@ -208,7 +208,7 @@ if __name__ == "__main__":
                     sys.exit(1)
 
                 outd = json.loads(out)
-                key_file = open(os.path.join(os.path.expanduser('~'),'.ssh/orta_user.pem'), 'x')
+                key_file = open(os.path.join(os.path.expanduser('~'),'.ssh/avh_user.pem'), 'x')
                 try:
                     key_file.write(outd["KeyMaterial"])
                 except:
@@ -219,19 +219,19 @@ if __name__ == "__main__":
 
                 # Set permissions
                 if platform.system() == "Linux" :
-                    os.system('chmod 600 ~/.ssh/orta_user.pem')
+                    os.system('chmod 600 ~/.ssh/avh_user.pem')
 
-                logging.info(orange + "Key has been saved as {}.ssh".format(os.path.expanduser('~') + os.path.sep) + os.path.sep + "orta_user.pem." + nc)
+                logging.info(orange + "Key has been saved as {}.ssh".format(os.path.expanduser('~') + os.path.sep) + os.path.sep + "avh_user.pem." + nc)
             else:
-                logging.info(orange + "Using 'orta_user' key in {}.ssh ...".format(os.path.expanduser('~') + os.path.sep) + nc)
+                logging.info(orange + "Using 'avh_user' key in {}.ssh ...".format(os.path.expanduser('~') + os.path.sep) + nc)
 
-        start_orta(args.profile, args.key, args.region, args.cloudinit)
+        start_avh(args.profile, args.key, args.region, args.cloudinit)
 
     elif args.command.lower() == "status" :
-        status_orta(args.profile, args.region, True)
+        status_avh(args.profile, args.region, True)
 
     elif args.command.lower() == "stop" :
-        stop_orta(args.profile, args.region)
+        stop_avh(args.profile, args.region)
 
     else :
         logging.error(red + "Unknown command." + nc)

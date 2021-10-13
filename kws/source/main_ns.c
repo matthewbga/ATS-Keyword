@@ -39,6 +39,7 @@
 #include "iot_logging_task.h"
 #include "aws_dev_mode_key_provisioning.h"
 #include "psa/update.h"
+#include "version/application_version.h"
 
 extern int mbedtls_platform_set_calloc_free( void * (*calloc_func)( size_t, size_t ),
                                              void (*free_func)( void * ) );
@@ -88,15 +89,12 @@ psa_key_handle_t xOTACodeVerifyKeyHandle = NULL;
 
 void print_version()
 {
-    psa_image_info_t xImageInfo = { 0 };
-    psa_image_id_t ulImageID = FWU_CALCULATE_IMAGE_ID(FWU_IMAGE_ID_SLOT_ACTIVE, FWU_IMAGE_ID_SLOT_ACTIVE, 0);
-    psa_status_t uxStatus = psa_fwu_query( ulImageID, &xImageInfo );
-    if( uxStatus != PSA_SUCCESS )
+    if( GetImageVersionPSA(FWU_IMAGE_TYPE_NONSECURE) == 0 )
     {
         print_log("Firmware version: %d.%d.%d",
-                  xImageInfo.version.iv_major,
-                  xImageInfo.version.iv_minor,
-                  xImageInfo.version.iv_revision);
+                  xAppFirmwareVersion.u.x.major,
+                  xAppFirmwareVersion.u.x.minor,
+                  xAppFirmwareVersion.u.x.build);
     }
 }
 

@@ -1,43 +1,41 @@
 # Introduction
 
-[Arm IoT Total Solutions](https://confluence.arm.com/www.arm.com/solutions/iot/total-solutions-iot) provides a complete solution designed for specific use-cases, leaving developers to focus on what really matters – innovation and differentiation across diverse and varied use cases. It has everything needed to simplify the design process and streamline product development, including hardware IP, software, real-time OS support, machine learning (ML) models, advanced tools such as the new Virtual Hardware Targets, application specific reference code and support from the world’s largest IoT ecosystem.  
+[Arm IoT Total Solutions](https://www.arm.com/solutions/iot/total-solutions-iot) provides a complete solution designed for specific use-cases, leaving developers to focus on what really matters – innovation and differentiation across diverse and varied use cases. It has everything needed to simplify the design process and streamline product development, including hardware IP, software, real-time OS support, machine learning (ML) models, advanced tools such as the new Arm Virtual Hardware, application specific reference code and support from the world’s largest IoT ecosystem.  
 
 # Configurations
 
-This repo contains Arm's first [IoT Total Solution](https://confluence.arm.com/www.arm.com/solutions/iot/total-solutions-iot), "Keyword Detection".  It provides general-purpose compute and ML workload use-cases, including an ML-based keyword recognition example that leverages the DS-CNN model from the [Arm Model Zoo](https://github.com/ARM-software/ML-zoo). The software supports multiple configurations of the Arm Corstone™-300 subsystem, incorporating the Cortex-M55 processor and Arm Ethos™-U55 microNPU.  This total solution provides the complex, non differentiated secure platform software on behalf of the ecosystem, thus enabling you to focus on your next killer app.  This repo also supports a GitHub runner ci/cd workflow right out of the box which leverages [Arm Virtual Hardware](https://www.arm.com/products/development-tools/simulation/virtual-hardware), a simulation environment that enables software development without the need of physical SoCs.  The source code in this repo supports several configurations of the software, all of which are AWS IoT Core (OTA, etc.) enabled right out of the box.  Instructions for using non-default configurations are provided in the below table.
-
-| # | default | description                                                                                              | .github/workflows/build.yml code change |   |
-|---|---------|----------------------------------------------------------------------------------------------------------|-----------------------------------------|---|
-| 1 |         | general purpose compute application (blinky application running on the m55 processor only)               | tbd                                     |   |
-| 2 |         | keyword detection application (running on the m55 only)                                                  | tbd                                     |   |
-| 3 |   YES   | keyword detection application (running on the m55+u55)                                                   | tbd                                     |   |
-| 4 |         | instructions for replacing the keyword model and application code with your own custom application/model | tbd                                     |   |
+This repo contains Arm's first [IoT Total Solution](https://www.arm.com/solutions/iot/total-solutions-iot), "Keyword Detection".  It provides general-purpose compute and ML workload use-cases, including an ML-based keyword recognition example that leverages the DS-CNN model from the [Arm Model Zoo](https://github.com/ARM-software/ML-zoo). The software supports multiple configurations of the Arm Corstone™-300 subsystem, incorporating the Cortex-M55 processor and Arm Ethos™-U55 microNPU.  This total solution provides the complex, non differentiated secure platform software on behalf of the ecosystem, thus enabling you to focus on your next killer app.  This repo also supports a GitHub runner CI/CD workflow right out of the box which leverages [Arm Virtual Hardware](https://www.arm.com/virtual-hardware), a simulation environment that enables software development without the need of physical SoCs.  The source code in this repo supports several configurations of the software, all of which are AWS IoT Core (OTA, etc.) enabled right out of the box.  Instructions for using non-default configurations are coming soon!e.
 
 # Quick Start
 Follow these simple steps to use this code example's default configuration #3 keyword detection application.
 
-1. Mirror this repo
+1. Mirror the repository
 ```sh
 # create a mirror (assumes new repo is already created https://docs.github.com/en/articles/creating-a-new-repository)
 > git clone --bare https://github.com/ARM-software/ATS-Keyword
 > cd ATS-Keyword
 > git push --mirror https://github.com/exampleuser/my-ats-keyword.git
- 
+
+> cd ..
+
 # clone your new repo
 > git clone https://github.com/exampleuser/my-ats-keyword.git
  
 # optionally remove the original repo from your hard drive
-> cd ..
 > rm -rf ATS-Keyword
 ```
 
 2. Launch Arm Virtual Hardware Instance
+
+ To utilize the Arm Virtual Hardware, you will need to create an AWS Account if you don’t already have one.
 
 ```sh
 # Ensure aws cli is installed and set up: https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html
 # The script requires a key pair to be set in AWS to identify instances and start new ones.
 # Provisioning of keys is detailed here: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html
 # Note: The key parameter required by the script is the name of the key pair in AWS. 
+
+# Open your favorite terminal program or linux shell application
 
 # Start a new instance.
 ./scripts/avh_cli.py -k <key pair> start
@@ -51,31 +49,25 @@ Follow these simple steps to use this code example's default configuration #3 ke
 
 3. Launch GitHub Self-Hosted Runner
 
-```sh
-# follow your repo's instructions to configure the github self hosted runner on the Arm Virtual Hardware ec2 instance
-# https://github.com/exampleuser/my-ats-keyword.git/settings/actions/runners/new
- 
+```sh 
 # Login to the ami
 > ssh ubuntu@<your-ec2-instance>
- 
-# Install runner software
-> mkdir actions-runner && cd actions-runner
-> curl -o <actions-runner.tar.gz -L https://github.com/actions/runner/releases/download/<version>/<action-runner>.tar.gz
-> echo "<sha>  <action-runner>.tar.gz" | shasum -a 256 -c
-> tar xzf ./<action-runner>.tar.gz
- 
-# Create, configure and run the runner
-> ./config.sh --url https://github.com/exampleuser/my-ats-keyword --token <token>
-> ./run.sh
- 
+```
+
+Follow your repo's instructions to configure the github self hosted runner on the Arm Virtual Hardware ec2 instance
+https://github.com/exampleuser/my-ats-keyword.git/settings/actions/runners/new
+
+```sh 
 # exit the ami and return shell back to your desktop
 > exit
 ```
 
-4. make a trivial (whitespace) code change and watch the code example compile and run test cases on Arm Virtual Hardware on your ec2 instance. 
-   Please refer to Github actions [documentation](https://docs.github.com/en/actions) to make additional change to the workflow
+4. Trigger the GitHub Runner. 
 
 ```sh
+# make a trivial (whitespace) code change and watch the code example compile and 
+# run test cases on Arm Virtual Hardware on your ec2 instance.
+
 # add whitespace to this file
 > vim .github/workflows/avh.yml
  
@@ -85,9 +77,23 @@ Follow these simple steps to use this code example's default configuration #3 ke
 > git push origin main
 ```
 
-5. To update the application, a set of scripts is included to setup the environment, build applications, run them and test them. These scripts must be executed in the AVH AMI. 
+Please refer to Github actions [documentation](https://docs.github.com/en/actions) to make additional changes to the workflow
+
+5. Build and execute the application
 
 ```sh
+# To update the application, a set of scripts is included to setup the environment, 
+# build applications, run them and test them. These scripts must be executed in the AVH AMI. 
+
+# Open your favorite terminal program or linux shell application and connect to the AVH AMI instance
+
+# Login to the ami
+ssh ubuntu@<your-ec2-instance>
+
+# clone your new repo in the ami 
+git clone https://github.com/exampleuser/my-ats-keyword.git 
+cd my-ats-keyword
+
 # Synchronize git submodules, setup ML and apply required patches
 ./bootstrap.sh
 
@@ -109,7 +115,7 @@ Alternatively, the projects can be build using [Keil MDK](https://www.arm.com/pr
 
 # Setting up AWS connectivity
 
-The KWS Demo will attempt to connect to AWS IOT and report ML inference results through an MQTT connection. For this to work you will need a [AWS Account](https://aws.amazon.com/) and setup an IoT thing and set credentials in the application.
+The Keyword Detection application Demo will attempt to connect to AWS IOT and report ML inference results through an MQTT connection. To connect to the AWS cloud service you will need to setup an IoT Thing and then set the AWS credentials of the IoT Thing within the Application. You will need to create an [AWS Account](https://aws.amazon.com/) if you don’t already have one.
 
 ## AWS account IoT setup
 
@@ -128,7 +134,7 @@ The KWS Demo will attempt to connect to AWS IOT and report ML inference results 
 
 1. In the navigation pane of the AWS IoT console, choose **Secure**, and then choose **Policies**.
 2. On the **Policies** page, choose **Create** (top right corner).
-3. On the **Create a policy** page, enter a name for the policy. In the **Action** box, enter **iot:Connect**, **iot:Publish**, **iot:Subscribe**, **iot:Receive**. The **Resource ARN** box will be auto-filled with your credentials. Replace the part after the last semicolon (`:`) with `*`. Under **Effect**, check the **Allow** box. Click on **Create**.
+3. On the **Create a policy** page, enter a name for the policy. In the **Action** box, enter **iot:Connect**, **iot:Publish**, **iot:Subscribe**, **iot:Receive**. The **Resource ARN** box will be auto-filled with your credentials. Replace the part after the last colon (`:`) with `*`. Under **Effect**, check the **Allow** box. Click on **Create**.
 4. In the left navigation pane of the AWS IoT console, choose **Secure**, and then choose **Certificates**. You should see the certificate that you have created earlier.
 5. Click on the three dots in the upper right corner of the certificate and choose **Attach policy**.
 6. In the **Attach policies to certificate(s)** window, enable the policy that you have just created and click **Attach**.
@@ -167,13 +173,44 @@ To see messages being sent by the application:
 3. Select the thing you created, and open the **Activity** tab. This will show the application connecting and subscribing to a topic.
 4. Click on the **MQTT test client** button. This will open a new tab.
 5. The tab **Subscribe to a topic** should be already selected. Open the **Additional configuration** rollout.
-6. In the topic filter field enter the topic name which is a concatenation of the name of your thing (set in clientcredentialIOT_THING_NAME) and `/ml/inference` (e.g. if you thing name is MyThing then it's `MyThing/ml/inference`)
+6. In the topic filter field enter the topic name which is a concatenation of the name of your thing (set in `clientcredentialIOT_THING_NAME`) and `/ml/inference` (e.g. if you thing name is MyThing then it's `MyThing/ml/inference`)
 7. In the **MQTT payload display** combo box select `Display payloads as strings (more accurate)`
 8. Click the **Subscribe** button. The messages will be shown below.
 
-# Replace DS-CNN
+# OTA firmware update
 
-All the ML models supported by the [ML Embedded Eval Kit](All the models supported ) are available to applications. The first step to use another odule is to generate sources files from its labels and `.tflite` model.  
+The application includes OTA update functionality. Application will check for updates at boot time and stop ml processing and instead download and apply new firmware if a newer version is available. To make such a version available you need to prepare the update binary (this is part of the build process) and crate an OTA job on AWS.
+
+## Creating updated firmware
+
+As part of the example build process an updated firmware will be created that will only differ in version number. That is enough to demonstrate the OTA process. If you want to add other changes you will have to copy the non-updated binary elsewhere before running the build again with your changes as the same build is used for both. The update binary is placed in `build/kws/tfm_ns_signed_update.bin`. This is already signed and is the file you will need to upload to a AWS bucket in the next section.
+
+Upon completion of the build and sign process the signature string will be echoed. This will be needed in the next step.
+
+## Creating AWS IoT firmware update job
+
+1. [Create an Amazon S3 bucket to store your update](https://docs.aws.amazon.com/freertos/latest/userguide/dg-ota-bucket.html)
+2. [Create an OTA Update service role](https://docs.aws.amazon.com/freertos/latest/userguide/create-service-role.html)
+3. [Create an OTA user policy](https://docs.aws.amazon.com/freertos/latest/userguide/create-ota-user-policy.html)
+4. Go to AWS IoT web interface and choose **Manage** and then **Jobs*
+5. Click the create job button and select **Create FreeRTOS OTA update job**
+6. Give it a name and click next
+7. Select the device to update (the Thing you created in earlier steps)
+8. Select `MQTT` transport only
+9. Select **Use my custom signed file**
+10. Paste the signature string that is echoed during the build of the example (it is also available in `build/kws/update-signature.txt`).
+11. Select `SHA-256` and `RSA` algorithms.
+12. For **Path name of code signing certificate on device** put in `0` (the path is not used)
+13. Select upload new file and select the signed update binary (`build/kws/tfm_ns_signed_update.bin`)
+14. Select the S3 bucket you created in step 1. to upload the binary to
+15. For **Path name of file on device** put in `non_secure image`
+16. As the role, select the OTA role you created in step 2.
+17. Click next
+18. Click next, your update job is ready and running - next time your application connects it will perform the update.
+
+# ML Model Replacement
+
+All the ML models supported by the [ML Embedded Eval Kit](All the models supported ) are available to applications. The first step to use another module is to generate sources files from its labels and `.tflite` model.  
 
 ```sh
 # Enter the ml example repository
@@ -199,10 +236,6 @@ Models available are present in `./lib/ml-embedded-evaluation-kit/resources_down
 Pre-integrated source code is available from the `ML Embedded Eval Kit` and can be browsed from `./lib/ml-embedded-evaluation-kit/source/use_case`. 
 
 Integrating a new model means integrating its source code and requires update of the build files.
-
-# ML Embedded Eval Kit
-
-Philip Lewer to replace this text with a paragraph for ml embedded eval kit
 
 # Future Enhancements
 - [AWS Partner Device Catalog Listing](https://devices.amazonaws.com/) (leveraging Arm Virtual Hardware)

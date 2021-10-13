@@ -50,7 +50,7 @@ python3 ./lib/tf-m/bl2/ext/mcuboot/scripts/wrapper/wrapper.py \
 
 echo "Signing non-secure binary."
 python3 ./lib/tf-m/bl2/ext/mcuboot/scripts/wrapper/wrapper.py \
-        -v 0.0.0 \
+        -v 1.0.0 \
         --layout $(readlink -f "bsp/signing_layout_ns.c") \
         -k ./lib/tf-m/bl2/ext/mcuboot/root-RSA-2048_1.pem  \
         --public-key-format full \
