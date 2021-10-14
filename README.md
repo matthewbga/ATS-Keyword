@@ -2,27 +2,120 @@
 
 [Arm IoT Total Solutions](https://www.arm.com/solutions/iot/total-solutions-iot) provides a complete solution designed for specific use-cases, leaving developers to focus on what really matters – innovation and differentiation across diverse and varied use cases. It has everything needed to simplify the design process and streamline product development, including hardware IP, software, real-time OS support, machine learning (ML) models, advanced tools such as the new Arm Virtual Hardware, application specific reference code and support from the world’s largest IoT ecosystem.  
 
-# Configurations
+# Overview
 
-This repo contains Arm's first [IoT Total Solution](https://www.arm.com/solutions/iot/total-solutions-iot), "Keyword Detection".  It provides general-purpose compute and ML workload use-cases, including an ML-based keyword recognition example that leverages the DS-CNN model from the [Arm Model Zoo](https://github.com/ARM-software/ML-zoo). The software supports multiple configurations of the Arm Corstone™-300 subsystem, incorporating the Cortex-M55 processor and Arm Ethos™-U55 microNPU.  This total solution provides the complex, non differentiated secure platform software on behalf of the ecosystem, thus enabling you to focus on your next killer app.  This repo also supports a GitHub runner CI/CD workflow right out of the box which leverages [Arm Virtual Hardware](https://www.arm.com/virtual-hardware), a simulation environment that enables software development without the need of physical SoCs.  The source code in this repo supports several configurations of the software, all of which are AWS IoT Core (OTA, etc.) enabled right out of the box.  Instructions for using non-default configurations are coming soon!e.
+This repo contains Arm's first [IoT Total Solution](https://www.arm.com/solutions/iot/total-solutions-iot), "Keyword Detection".  It provides general-purpose compute and ML workload use-cases, including an ML-based keyword recognition example that leverages the DS-CNN model from the [Arm Model Zoo](https://github.com/ARM-software/ML-zoo). 
+
+The software supports multiple configurations of the Arm Corstone™-300 subsystem, incorporating the Cortex-M55 processor and Arm Ethos™-U55 microNPU.  This total solution provides the complex, non differentiated secure platform software on behalf of the ecosystem, thus enabling you to focus on your next killer app.  
+
+This repo also supports a GitHub runner CI/CD workflow right out of the box which leverages [Arm Virtual Hardware](https://www.arm.com/virtual-hardware), a simulation environment that enables software development without the need of physical SoCs.  The source code in this repo supports several configurations of the software, all of which are AWS IoT Core (OTA, etc.) enabled right out of the box. Instructions for using non-default configurations are coming soon!
+
+## Keyword detection application  
+
+The keyword detection application runs the DS-CNN model on top of [AWS FreeRTOS](https://docs.aws.amazon.com/freertos/). It detects keywords and inform the user of which keyword has been spotted. The audio data to process are injected at run time using the [Arm Virtual Hardware](https://www.arm.com/virtual-hardware) audio driver. 
+
+The Keyword application connects to [AWS IoT](https://docs.aws.amazon.com/iot/latest/developerguide/what-is-aws-iot.html) cloud to publish recognised keywords. AWS IoT cloud is also used for OTA firmware updates. These firmware updates are securely applied using [Trusted Firmware-M](https://tf-m-user-guide.trustedfirmware.org/). 
+
+![Key word detection architecture overview](./resources/Keyword-detection-overview.png)
+
+## Blinky application 
+
+The blinky application demonstrate blinking LEDs using Arm Virtual Hardware. AWS FreeRTOS and FreeRTOS are already included in the application to kickstart new developments. 
+
 
 # Quick Start
-Follow these simple steps to use this code example's default configuration #3 keyword detection application.
+Follow these simple steps to use this code example's keyword detection application.
+
+## Launch Arm Virtual Hardware Instance
+
+To utilize the Arm Virtual Hardware, you will need to create an [AWS Account](https://aws.amazon.com/) if you don’t already have one.
+
+You can [launch](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EC2_GetStarted.html) a new instance using the [AWS EC2](https://console.aws.amazon.com/ec2/v2/) web interface. You must select the Arm Virtual Hardware as the [Amazon Machine Image](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html) to use. This image contains all the software necessary to build and run the Arm IoT Total Solutions.
+
+Another option is to use the `avh_cli.py` script to launch a new instance for you. [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html) must be configured on your machine and a provisioning [key pair](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html) must be available in AWS. 
+
+Open your favorite terminal program or linux shell application then start a new instance:
+
+```sh
+./scripts/avh_cli.py -k <key pair name> start
+```
+
+## Build and execute the application
+
+To update the application, a set of scripts is included to setup the environment, 
+build applications, run them and test them. These scripts must be executed in the AVH AMI. 
+
+Open your favorite terminal program or linux shell application and connect to the AVH AMI instance:
+
+```sh
+ssh ubuntu@<your-ec2-instance>
+```
+
+Clone the repository in the AMI: 
+
+```sh
+git clone https://github.com/ARM-software/ATS-Keyword && cd ATS-Keyword
+```
+
+Synchronize git submodules, setup ML and apply required patches:
+
+```sh
+./bootstrap.sh
+```
+
+Install additional python dependencies required to run tests and sign binaries:
+
+```sh
+pip3 install click imgtool pytest
+```
+
+Build the kws application:
+
+```sh
+./build.sh kws
+```
+
+Run the kws application:
+```sh
+./run.sh kws
+```
+
+Launch the kws integration tests:
+```sh
+pytest -s kws/tests
+```
+
+To build, run and launch a test of the blinky application, replace `kws` by `blinky`.
+
+Alternatively, the projects can be build using [Keil MDK](https://www.arm.com/products/development-tools/embedded-and-software/keil-mdk).
+`blinky.uvmpw` and `kws.uvmpw` contains respectively the `blinky` and `kws` project.  
+
+## Updating audio data
+
+The audio data streamed into the Arm Virtual Hardware is read from the file `test.wav` located at the root of the repository. It can be replaced with another audio file with the following configuration: 
+- Format: PCM 
+- Audio channels: Mono
+- Sample rate: 16 bits
+- Sample rate: 16kHz  
+
+# Continuous integration setup 
+
+Follow these simple steps to setup a GitHub continuous integration pipeline in a mirror of this repository.
 
 1. Mirror the repository
 ```sh
 # create a mirror (assumes new repo is already created https://docs.github.com/en/articles/creating-a-new-repository)
-> git clone --bare https://github.com/ARM-software/ATS-Keyword
-> cd ATS-Keyword
-> git push --mirror https://github.com/exampleuser/my-ats-keyword.git
+git clone --bare https://github.com/ARM-software/ATS-Keyword
+cd ATS-Keyword
+git push --mirror https://github.com/exampleuser/my-ats-keyword.git
 
-> cd ..
+cd ..
 
 # clone your new repo
-> git clone https://github.com/exampleuser/my-ats-keyword.git
+git clone https://github.com/exampleuser/my-ats-keyword.git
  
 # optionally remove the original repo from your hard drive
-> rm -rf ATS-Keyword
+rm -rf ATS-Keyword
 ```
 
 2. Launch Arm Virtual Hardware Instance
@@ -30,92 +123,48 @@ Follow these simple steps to use this code example's default configuration #3 ke
  To utilize the Arm Virtual Hardware, you will need to create an AWS Account if you don’t already have one.
 
 ```sh
-# Ensure aws cli is installed and set up: https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html
-# The script requires a key pair to be set in AWS to identify instances and start new ones.
-# Provisioning of keys is detailed here: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html
-# Note: The key parameter required by the script is the name of the key pair in AWS. 
-
-# Open your favorite terminal program or linux shell application
-
-# Start a new instance.
-./scripts/avh_cli.py -k <key pair> start
-
-# Get instances status.
-./scripts/avh_start -k <key pair> status
-
-# Terminate an instance. If multiple instance are running, you must provide the instance ID.
-./scripts/avh_start -k <key pair> status
+./scripts/avh_cli.py -k <key pair name> start
 ```
 
 3. Launch GitHub Self-Hosted Runner
 
 ```sh 
 # Login to the ami
-> ssh ubuntu@<your-ec2-instance>
+ssh ubuntu@<your-ec2-instance>
 ```
 
 Follow your repo's instructions to configure the github self hosted runner on the Arm Virtual Hardware ec2 instance
-https://github.com/exampleuser/my-ats-keyword.git/settings/actions/runners/new
+https://github.com/exampleuser/my-ats-keyword.git/settings/actions/runners/new . The runner process must be launched in detached state (`&` at the end of the command) to persist after the SSH session.
 
 ```sh 
 # exit the ami and return shell back to your desktop
-> exit
+exit
 ```
 
 4. Trigger the GitHub Runner. 
+
+A first run of the existing action should start right away. Any change to the 
+repository will trigger a new run.
 
 ```sh
 # make a trivial (whitespace) code change and watch the code example compile and 
 # run test cases on Arm Virtual Hardware on your ec2 instance.
 
 # add whitespace to this file
-> vim .github/workflows/avh.yml
+vim .github/workflows/avh.yml
  
 # git push it
-> git add .github/workflows/avh.yml
-> git commit -m "initial arm virtual hardware github runner test"
-> git push origin main
+git add .github/workflows/avh.yml
+git commit -m "initial arm virtual hardware github runner test"
+git push origin main
 ```
 
-Please refer to Github actions [documentation](https://docs.github.com/en/actions) to make additional changes to the workflow
+Refer to GitHub actions [documentation](https://docs.github.com/en/actions) to make additional changes to the workflow.
 
-5. Build and execute the application
-
-```sh
-# To update the application, a set of scripts is included to setup the environment, 
-# build applications, run them and test them. These scripts must be executed in the AVH AMI. 
-
-# Open your favorite terminal program or linux shell application and connect to the AVH AMI instance
-
-# Login to the ami
-ssh ubuntu@<your-ec2-instance>
-
-# clone your new repo in the ami 
-git clone https://github.com/exampleuser/my-ats-keyword.git 
-cd my-ats-keyword
-
-# Synchronize git submodules, setup ML and apply required patches
-./bootstrap.sh
-
-# The python environment requires extra packages to sign the binaries
-pip3 install click imgtool pytest
-
-# Build the blinky or kws application
-./build.sh <blinky|kws>
-
-# Run the blinky or kws application
-./run.sh <blinky|kws>
-
-# Launch integration tests
-pytest -s <blinky|kws>/tests
-```
-
-Alternatively, the projects can be build using [Keil MDK](https://www.arm.com/products/development-tools/embedded-and-software/keil-mdk).
-`blinky.uvmpw` and `kws.uvmpw` contains respectively the `blinky` and `kws` project.  
 
 # Setting up AWS connectivity
 
-The Keyword Detection application Demo will attempt to connect to AWS IOT and report ML inference results through an MQTT connection. To connect to the AWS cloud service you will need to setup an IoT Thing and then set the AWS credentials of the IoT Thing within the Application. You will need to create an [AWS Account](https://aws.amazon.com/) if you don’t already have one.
+The Keyword Detection application will attempt to connect to AWS IOT and report ML inference results through an MQTT connection. To connect to the AWS cloud service you will need to setup an IoT Thing and then set the AWS credentials of the IoT Thing within the Application. You will need to create an [AWS Account](https://aws.amazon.com/) if you don’t already have one.
 
 ## AWS account IoT setup
 
@@ -179,7 +228,7 @@ To see messages being sent by the application:
 
 # OTA firmware update
 
-The application includes OTA update functionality. Application will check for updates at boot time and stop ml processing and instead download and apply new firmware if a newer version is available. To make such a version available you need to prepare the update binary (this is part of the build process) and crate an OTA job on AWS.
+The application includes OTA update functionality. The application will check for updates from the AWS Cloud at boot time to check if there is an update pending.  If an update is available, the application will stop ML processing, download the new firmware, and then apply the new firmware if the version number indicates the image is newer. To make such a version available you need to prepare the update binary (this is part of the build process) and create an OTA job on AWS.
 
 ## Creating updated firmware
 
@@ -207,6 +256,23 @@ Upon completion of the build and sign process the signature string will be echoe
 16. As the role, select the OTA role you created in step 2.
 17. Click next
 18. Click next, your update job is ready and running - next time your application connects it will perform the update.
+
+# Source code overview
+
+- `bsp`: Arm Corstone™-300 subsystem platform code and AWS configurations. 
+- `lib`: Middleware used by IoT Total Solution.
+  - `lib/mcuboot`: MCUboot bootloader.
+  - `lib/tf-m`: Trusted Firmware M: [Platform Security Architecture](PSA) for Armv8-M.
+  - `lib/mbedcrypto`: Mbed TLS and PSA cryptographic APIs.
+  - `lib/ml-embedded-evaluation-kit`: Arm® ML embedded evaluation kitr Ethos NPU. It includes [TensorFlow](https://www.tensorflow.org/)  
+  - `lib/amazon_freertos`: AWS FreeRTOS distribution.
+  - `libVHT`: Virtual streaming solution for Arm Virtual Hardware. 
+- `blinky`: Blinky application.
+  - `blinky/main_ns.c`: Entry point of the blinky application
+- `kws`: Keyword detection application.
+  - `kws/source/main_ns.c`: Entry point of the kws application. 
+  - `kws/source/blinky_task.c`: Blinky/UX thread of the application.
+  - `kws/source/ml_interface.c`: Interface between the virtual streaming solution and tensor flow. 
 
 # ML Model Replacement
 
@@ -237,6 +303,13 @@ Pre-integrated source code is available from the `ML Embedded Eval Kit` and can 
 
 Integrating a new model means integrating its source code and requires update of the build files.
 
+# Known limitations
+
+- Arm compiler 6 is the only compiler supported. 
+- Accuracy of the ML detection running alongside cloud connectivity depends on the performance of the EC2 instance used. We recommend to use at least a t3.medium instance. 
+- Arm Corstone™-300 subsystem simulation is not time accurate. Performances will differ depending on the performances of the host machine.  
+
+
 # Future Enhancements
 - [AWS Partner Device Catalog Listing](https://devices.amazonaws.com/) (leveraging Arm Virtual Hardware)
 - cmake
@@ -247,7 +320,6 @@ Integrating a new model means integrating its source code and requires update of
 |---------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [Arm AI Ecosystem Catalog](https://www.arm.com/why-arm/partner-ecosystem/ai-ecosystem-catalog)                | Connects you to the right partners, enabling you to build the next generation of AI solutions                                                                                                                                      |
 | [Arm ML Model Zoo](https://github.com/ARM-software/ML-zoo)                                                    | A collection of machine learning models optimized for Arm IP.                                                                                                                                                                      |
-| [Arm Virtual Hardware Documentation](https://mdk-packs.github.io/VHT-TFLmicrospeech/overview/html/index.html) | Documentation for [Arm Virtual Hardware](https://www.arm.com/products/development-tools/simulation/virtual-hardware)                                                                                                               |
 | [Arm Virtual Hardware Documentation](https://mdk-packs.github.io/VHT-TFLmicrospeech/overview/html/index.html) | Documentation for [Arm Virtual Hardware](https://www.arm.com/products/development-tools/simulation/virtual-hardware)                                                                                                               |
 | [Arm CMSIS Build](https://arm-software.github.io/CMSIS_5/Build/html/index.html)                               | Documentation for the build system used by applications in this repository.                                                                                                                                                        |
 | [AWS FreeRTOS](https://docs.aws.amazon.com/freertos/)                                                         | Documentation for AWS FreeRTOS.                                                                                                                                                                                                    |
