@@ -33,7 +33,7 @@ To utilize the Arm Virtual Hardware, you will need to create an [AWS Account](ht
 
 #### Launching the instance in EC2 [(AWS on getting started)](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EC2_GetStarted.html)
 1. Go to [EC2](https://console.aws.amazon.com/ec2/v2/) in the AWS Web Console.
-1. Select Launch Instances which will take you to a wizard for launching the instance.
+1. Select **Launch Instances** which will take you to a wizard for launching the instance.
   1. **Step 1: Choose an [Amazon Machine Image (AMI)](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html)** - In the Search box, type `ARM Virtual Hardware` then find the item called "ARM Virtual Hardware" that is by Arm, and press Select for that item. This image contains all the software necessary to build and run the Arm IoT Total Solutions.
   This will raise a subscription page/pop-up titled, **ARM Virtual Hardware**. You will note that the subscription is free from Arm, but AWS does charge for the costs of the instances themselves according to the pricing chart provided. You must select Continue if you want to move forward.
   1. **Step 2: Choose an Instance Type** - Select one of the instance types from the list. We recommend the **c5.large**. Keep in mind that there are charges that accrue while the instance is running.
@@ -42,12 +42,12 @@ To utilize the Arm Virtual Hardware, you will need to create an [AWS Account](ht
 #### Selecting the instance
 Once you complete the wizard by initiating the instance launch you will see a page that allows you to navigate directly to the new instance. You may click this link or go back to your list of instances and find the instance through that method.
 
-Whichever way you choose find you new instance and select its instance ID to open the page to manage the instance.
+Whichever way you choose find your new instance and select its instance ID to open the page to manage the instance.
 
 #### Connecting to the instance: 
 1. Select **Connect** to open an SSH terminal session to the instance in your browser.
 1. Ensure the User name field is set to `ubuntu`.
-1. Select the **Connect** button to open the session.
+1. Select the **Connect** button to open the session. This will put you in a browser window where you have an SSH terminal window, ready for yoyr input.
 
 ## Build and execute the application
 
